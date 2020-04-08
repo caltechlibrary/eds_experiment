@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- This example is from https://vuejs.org/v2/guide/ -->
+
+<html>
+  <head>
+    <title>My second Vue app</title>
+    <script src="https://unpkg.com/vue"></script>
+  </head>
+  <body>
+
+    <div id="app-2">
+      <span v-bind:title="message">
+        Hover your mouse over me for a few seconds
+        to see my dynamically bound title. This happens because 
+        the <code>title</code> field is normally displayed by the
+        browser as a tooltip text, and in this case, the value
+        of <code>title</code> is set when the page is loaded by
+        the <code>v-bind</code> connection to Vue.  The prefix
+        <code>v-bind</code> is something specific to Vue, not HTML.
+        Vue introduces different <code>v-</code> attributes for
+        reactive features.
+      </span>
+    </div>
+    <script>
+      var app2 = new Vue({
+        el: '#app-2',
+        data: {
+          message: 'You loaded this page on ' + new Date().toLocaleString()
+        }
+      })
+    </script>
+  </body>
+</html>

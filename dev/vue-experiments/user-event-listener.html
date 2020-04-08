@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- This example is from https://vuejs.org/v2/guide/ -->
+
+<html>
+  <head>
+    <link rel="stylesheet" href="index.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  </head>
+  <body>
+    
+
+    <div id="app">
+      <p>The value below is internally written with a template
+        replacement. The value is taken from <code>this.message</code>
+        internally. I think the <code>this</code> part must be
+        something introduced by Vue.</p>
+
+      <p>{{ message }}</p>
+      <button v-on:click="reverseMessage">Reverse Message</button>
+    </div>
+    
+    <script>
+     var app = new Vue({
+       el: '#app',
+       data: {
+         message: 'Hello Vue.js!'
+       },
+       methods: {
+         reverseMessage: function () {
+           this.message = this.message.split('').reverse().join('')
+         }
+       }
+     })
+    </script>
+  </body>
+</html>
