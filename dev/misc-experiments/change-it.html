@@ -1,0 +1,26 @@
+<html>
+  <head>
+    <title>Let's play spin the loader</title>
+    <script src="https://unpkg.com/vue"></script>
+  </head>
+  <body>
+    <div id="app">{{ message }}
+      <button v-on:click="update" v-if="visible" >Change it</button>
+    </div>
+    <script>
+     new Vue({
+       el: '#app',
+       data: {
+         message: 'starting message',
+         visible: true
+       },
+       methods: {
+         update: function () {
+           this.message = 'changed it!';
+           this.visible = false;
+         }
+       }
+     })
+    </script>
+  </body>
+</html>

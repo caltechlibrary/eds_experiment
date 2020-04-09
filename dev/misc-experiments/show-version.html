@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <title>Current version number of microarchiver in GitHub</title>
+    <script src="https://unpkg.com/vue"></script>
+  </head>
+  <body>
+    <div id="app">{{ version }}
+      <button v-on:click="showMessage">Get the version number</button>
+    </div>
+    <script>
+     new Vue({
+       el: '#app',
+       data: {
+         version: ''
+       },
+       methods: {
+         showMessage: function () {
+           var githubURL = 'https://api.github.com/repos/caltechlibrary/microarchiver/releases/latest';
+           var githubJSON = '';
+           fetch(githubURL)
+             .then((response) => {
+               return response.json();
+             })
+             .then((data) => {
+               this.version = data.tag_name;
+             });
+         }
+       }
+     })
+    </script>
+  </body>
+</html>
