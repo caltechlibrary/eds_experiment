@@ -1,0 +1,16 @@
+<html>
+  <body>
+    <button onclick="getSession()">Click me</button>
+    <script>
+     function getSession() {
+       var http = new XMLHttpRequest();
+       http.open('POST', 'https://eds-api.ebscohost.com/authservice/rest/ipauth');
+       http.setRequestHeader('Accept', 'application/json');
+       http.onreadystatechange = function() {
+         console.log(this.responseText);
+       }
+       http.send();
+     }
+    </script>
+  </body>
+</html>

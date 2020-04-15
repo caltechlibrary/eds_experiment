@@ -1,0 +1,17 @@
+<html>
+  <body>
+    <button onclick="getSession()">Click me</button>
+    <script>
+     function getSession() {
+       let url = 'https://eds-api.ebscohost.com/authservice/rest/ipauth';
+       let params = { method: 'POST' };
+
+       console.log('Calling fetch ...');
+       fetch(url, params)
+         .then((response) => {
+           console.log(response);
+         });
+     }
+    </script>
+  </body>
+</html>
