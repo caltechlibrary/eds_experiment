@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- This test reads a page containing nothing but plain text, and prints it out. -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.8.8/brython.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.8.8/brython_stdlib.min.js"></script>
+  </head>
+  <body onload="brython()">
+    <script type="text/python">
+     # Note that Python comment syntax like this works.
+     import urllib.request
+     import urllib.parse
+     url = 'https://gist.githubusercontent.com/mhucka/c135f41f6bc0754b4c792241cdbad8d6/raw/25c622e36e51fdb985ebb9ac250dea2bee6400f8/test'
+     f = urllib.request.urlopen(url)
+     print(f.read())
+    </script>
+  </body>
+</html>
