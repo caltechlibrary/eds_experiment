@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.8.8/brython.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.8.8/brython_stdlib.min.js"></script>
+  </head>
+  <body onload="brython()">
+    <script type="text/python">
+     import urllib.request
+     import sys, inspect
+     clsmembers = inspect.getmembers(sys.modules['urllib.request'], inspect.isclass)
+     print(clsmembers)
+    </script>
+  </body>
+</html>
