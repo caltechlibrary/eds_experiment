@@ -1,6 +1,7 @@
 const config = {
     "user"     : "",
-    "password" : ""
+    "password" : "",
+    "authEndpoint" : ""
 };
 
 module.exports = config;
