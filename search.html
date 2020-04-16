@@ -1,0 +1,99 @@
+<html>
+  <head>
+    <title>Test</title>
+    <script type="text/javascript" src="https://unpkg.com/vue"></script>
+    <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- Next line is to make syntax of config.js work for here and in node -->
+    <script type="text/javascript">module = {}</script>
+    <script type="text/javascript" src="./config.js"></script>
+</script>
+  </head>
+  <body>
+    <div id="app">{{ output }}
+      <button v-on:click="run">Click me</button>
+    </div>
+    <script>
+     new Vue({
+       el: '#app',
+       data: {
+         output: ''
+       },
+       methods: {
+         getAuthToken(authURL) {
+           let body = JSON.stringify({ "UserId": config.user, "Password": config.password });
+           let headers = {'Content-Type': 'application/json' };
+           let request = { method: 'post',
+                           url: config.corsProxy + authURL,
+                           headers: headers,
+                           data: body };
+           return axios(request)
+             .then(response => response.data)
+             .then(data => data.AuthToken)
+             .catch(error => { console.log(error); });
+         },
+
+         getSessionToken(sessionEndpoint, authToken) {
+           let headers = {'x-authenticationToken': authToken,
+                          'Content-Type': 'application/json' };
+           let body    = {'Profile': 'edsapi'};
+           let request = { method: 'post',
+                           url: config.corsProxy + sessionEndpoint,
+                           headers: headers,
+                           data: body };
+           return axios(request)
+             .then(response => response.data)
+             .then(data => data.SessionToken)
+             .catch(error => { console.log(error); });
+         },
+
+         search(authToken, sessionToken, searchURL) {
+           let headers = {'x-authenticationToken': authToken,
+                          'x-sessionToken': sessionToken,
+                          'Content-Type': 'application/json' };
+           let body = {
+             "SearchCriteria": {
+               "Queries":[ { "Term":"Pandemic" } ],
+               "SearchMode": "all",
+               "IncludeFacets": "y",
+               "Sort": "relevance",
+               "AutoSuggest": "n",
+               "AutoCorrect": "n"
+             },
+             "RetrievalCriteria": {
+               "View": "brief",
+               "ResultsPerPage": 20,
+               "PageNumber": 1,
+               "Highlight": "y",
+               "IncludeImageQuickView": "n"
+             },
+             "Actions": null
+           };
+           let request = { method: 'post',
+                           url: config.corsProxy + searchURL,
+                           headers: headers,
+                           data: body };
+           return axios(request)
+             .then(response => response.data)
+             .then(data => data.SearchResult)
+             .catch(error => { console.log(error); });
+         },
+
+         async main(authURL, sessionURL, searchURL) {
+           let authToken = await this.getAuthToken(authURL);
+           let sessionToken = await this.getSessionToken(sessionURL, authToken);
+           let results = await this.search(authToken, sessionToken, searchURL);
+           console.log(results.Data.Records[6].Header);
+           this.output = results.Data.Records[6].Header;
+         },
+
+         run() {
+           const authURL    = 'https://eds-api.ebscohost.com/authservice/rest/uidauth';
+           const sessionURL = 'https://eds-api.ebscohost.com/edsapi/rest/createsession';
+           const searchURL  = 'https://eds-api.ebscohost.com/edsapi/rest/Search';
+           this.main(authURL, sessionURL, searchURL);
+         }
+       }
+     })
+    </script>
+  </body>
+</html>
