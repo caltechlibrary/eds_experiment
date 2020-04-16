@@ -65,21 +65,23 @@ function search(authToken, sessionToken, searchURL) {
 // Main code.
 // .............................................................................
 
-// let x;
-// getAuthToken(config.authEndpoint, config.user, config.password)
-//     .then(token => { x = token; console.log('1st: ' + x); return token; })
-//     .then(value => console.log('2nd: ' + value));
-
-
 const authURL    = 'https://eds-api.ebscohost.com/authservice/rest/ipauth';
 const sessionURL = 'https://eds-api.ebscohost.com/edsapi/rest/createsession';
 const searchURL  = 'https://eds-api.ebscohost.com/edsapi/rest/Search';
 
-async function main() {
-    let authToken = await getAuthToken(authURL);
-    let sessionToken = await getSessionToken(sessionURL, authToken);
-    let results = await search(authToken, sessionToken, searchURL);
-    console.log(results.Data.Records[6].Header);
-}
+let authTokenPromise = getAuthToken(authURL);
 
-main();
+let sessionTokenPromise = authTokenPromise.then(
+    (atok) => {
+        return getSessionToken(sessionURL, atok);
+    });
+
+let searchPromise = Promise.all([authTokenPromise, sessionTokenPromise]).then(
+    (tokens) => {
+        return search(tokens[0], tokens[1], searchURL);
+    });
+
+let searchResult = searchPromise.then(
+    (result) => {
+        console.log(result);
+    });
