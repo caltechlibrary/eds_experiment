@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/brython@3.8.8/brython.min.js">
+    </script>
+</head>
+
+<body onload="brython()">
+
+<script type="text/python">
+from browser import document as doc
+from browser import ajax
+
+def on_complete(req):
+    if req.status==200 or req.status==0:
+        print(req.text)
+        doc["main"].html = req.text
+    else:
+        print(req.text)
+        doc["main"].html = "error "+req.text
+
+def get(url):        
+    req = ajax.ajax()
+    req.bind('complete',on_complete)
+    req.open('GET',url,True)
+    req.set_header('content-type','application/x-www-form-urlencoded')
+    req.send()
+
+get('http://lgdc.uml.edu/common/DIDBGetValues?ursiCode=DB049&charName=foF2')
+</script>
+
+
+</body>
+
+</html>
