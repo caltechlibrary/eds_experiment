@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <title>Test</title>
+    <script type="text/javascript" src="https://unpkg.com/vue"></script>
+    <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- Next line is to make syntax of config.js work for here and in node -->
+    <script type="text/javascript">module = {}</script>
+    <script type="text/javascript" src="./config.js"></script>
+</script>
+  </head>
+  <body>
+    <div id="app">{{ version }}
+      <button v-on:click="getSession">Get the session</button>
+    </div>
+    <script>
+     new Vue({
+       el: '#app',
+       data: {
+         version: ''
+       },
+       methods: {
+         getSession: function () {
+           let authenticationEndpoint = 'https://cors-anywhere.herokuapp.com/https://eds-api.ebscohost.com/authservice/rest/uidauth';
+           let body = JSON.stringify({ "UserId": config.user, "Password": config.password });
+           let params = {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json', 
+                       'Content-Length': body.length },
+             body: body,
+           }
+
+           console.log(params);
+           fetch(authenticationEndpoint, params)
+             .then((response) => {
+               return response.text();
+             })
+             .then((text) => {
+               console.log(text);
+             })
+             .catch(err => {
+               console.log(err);
+             });
+         }
+       }
+     })
+    </script>
+  </body>
+</html>
