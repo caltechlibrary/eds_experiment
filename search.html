@@ -216,10 +216,10 @@
 
            if (debugLog) {
              console.group('>>>> post to "' + url + '"');
-             console.table(headers);
-             console.table(body);
+             console.log('Headers:'); console.table(headers);
+             console.log('Body:'); console.table(body);
              console.groupEnd();
-           }
+           };
 
            return axios(request)
              .then(response => {
@@ -231,7 +231,20 @@
                return response.data;
              })
              .catch(error => {
-               console.log(error);
+               if (error.request) {
+                 // The request was made but no response was received.
+                 console.group('Problem with post to "' + url + '"');
+                 console.log(error.request);
+                 console.groupEnd();
+               } else if (error.response) {
+                 // Request was made and server responded.
+                 console.group('Problem with response to "' + url + '"');
+                 console.log(error.response);
+                 console.groupEnd();
+               } else {
+                 // Something happened.
+                 console.log(error);
+               }
                if (debugBreak) debugger;
                return null;
              });
