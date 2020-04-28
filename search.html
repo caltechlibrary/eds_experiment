@@ -6,6 +6,7 @@
     <!-- Next line is to make syntax of config.js work for here and in node -->
     <script type="text/javascript">module = {}</script>
     <script type="text/javascript" src="./config.js"></script>
+    <script type="text/javascript" src="./net.js"></script>
     <script type="text/x-template" id="modal-template">
       <transition name="modal">
         <div class="modal-mask">
@@ -141,12 +142,6 @@
      // How long to wait on axios http post, in milliseconds.
      const postTimeout = 5 * 1000;
 
-     // Whether to print things to the console, for debugging.
-     const debugLog = true;
-
-     // Whether to break into the debugger on errors.
-     const debugBreak = false;
-
 
      // Vue object definition.
      // .......................................................................
@@ -171,14 +166,15 @@
          authToken() {
            let body = JSON.stringify({ "UserId": config.user,
                                        "Password": config.password });
-           return this.post(config.authURL, body)
-                      .then(data => data.AuthToken);
+           return net.post(config.authURL, config.corsproxy, body)
+                     .then(data => data.AuthToken);
          },
 
          sessionToken(a_token) {
-           return this.post(config.sessionURL, {'Profile': 'edsapi'},
-                                 {'x-authenticationToken': a_token })
-                      .then(data => data.SessionToken);
+           return net.post(config.sessionURL, config.corsproxy,
+                           {'Profile': 'edsapi'},
+                           {'x-authenticationToken': a_token })
+                     .then(data => data.SessionToken);
          },
 
          searchResults(a_token, s_token) {
@@ -203,51 +199,8 @@
              },
              "Actions": null
            };
-           return this.post(config.searchURL, body, headers)
-                      .then(data => data.SearchResult);
-         },
-
-         /** Do an HTTP POST to the url, with the body, w/ optional headers. */
-         post(url, body, extra_headers = {}) {
-           let headers = Object.assign({'Content-Type': 'application/json' },
-                                       extra_headers, config.corsProxyHeaders);
-           let request = { method: 'post', url: config.corsProxy + url,
-                           headers: headers, data: body };
-
-           if (debugLog) {
-             console.group('>>>> post to "' + url + '"');
-             console.log('Headers:'); console.table(headers);
-             console.log('Body:'); console.table(body);
-             console.groupEnd();
-           };
-
-           return axios(request)
-             .then(response => {
-               if (debugLog) {
-                 console.group('<<<< post response');
-                 console.log(response);
-                 console.groupEnd();
-               };                 
-               return response.data;
-             })
-             .catch(error => {
-               if (error.request) {
-                 // The request was made but no response was received.
-                 console.group('Problem with post to "' + url + '"');
-                 console.log(error.request);
-                 console.groupEnd();
-               } else if (error.response) {
-                 // Request was made and server responded.
-                 console.group('Problem with response to "' + url + '"');
-                 console.log(error.response);
-                 console.groupEnd();
-               } else {
-                 // Something happened.
-                 console.log(error);
-               }
-               if (debugBreak) debugger;
-               return null;
-             });
+           return net.post(config.searchURL, config.corsproxy, body, headers)
+                     .then(data => data.SearchResult);
          },
 
 
