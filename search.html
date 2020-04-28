@@ -129,8 +129,9 @@
   </head>
   <body>
     <div id="app">
-      <input v-model="searchString" class="search-input" type="text" placeholder="Search string">
-      <button class="search-button" v-on:click="run">Search</button>
+      <input v-model="searchString" v-on:keyup.enter="run"
+             class="search-input" type="text" placeholder="Search string">
+      <button v-on:click="run" class="search-button">Search</button>
       <div class="output">
         {{ numResults }}
       </div>
