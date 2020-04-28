@@ -1,57 +1,56 @@
-const normal_style = 'color: DarkBlue; background-color: #ddd';
-const error_style  = 'color: FireBrick; background-color: #ddd';
+// Preliminary configuration.
+// ............................................................................
 
-const debugLog   = true;                // Print to the console?
-const debugBreak = false;               // Go into debugger on errors?
+// Load our logging module if necessary.  If we're loaded from an HTML file
+// in a browser, this should be loaded already.
+try {
+    var log = require('loglevel');
+} catch (ex) {}
 
+
+// Main code.
+// ............................................................................
 
 var net = {
     /** Do an HTTP POST to the url, with the body, w/ optional headers. */
     post: function(url, proxy, body, extra_headers = {}) {
-        let headers = Object.assign({'Content-Type': 'application/json' },
-                                    extra_headers, proxy.headers);
-        let request = { method: 'post',
-                        url: proxy.url + url,
-                        headers: headers,
-                        data: body };
+        let headers = { ...{'Content-Type': 'application/json' },
+                        ...extra_headers, ...proxy.headers };
+        let params = { method: 'post',
+                       url: proxy.url + url,
+                       headers: headers,
+                       data: body };
 
-        if (debugLog) {
-            console.group('%c%s', normal_style, '>>>> post to "' + url + '"');
-            console.log('Headers:'); console.table(headers);
-            console.log('Body:'); console.table(body);
-            console.groupEnd();
-        };
+        log.debug('>>>> post to', url);
+        log.debug('headers: ', headers);
+        log.debug('body: ', body);
 
-        return axios(request)
+        return axios(params)
             .then(response => {
-                if (debugLog) {
-                    console.group('%c%s', normal_style, '<<<< post response');
-                    console.log(response);
-                    console.groupEnd();
-                };                 
+                log.debug('<<<< post response');
+                log.debug(response);
                 return response.data;
             })
             .catch(error => {
                 if (error.request) {
                     // The request was made but no response was received.
-                    console.group('%c%s', error_style,
-                                  'Problem with post to "' + url + '"');
-                    console.log(error.request);
-                    console.groupEnd();
+                    log.error('Problem with post to', url);
+                    log.error(error.request);
                 } else if (error.response) {
                     // Request was made and server responded.
-                    console.group('%c%s', error_style,
-                                  'Problem with response to "' + url + '"');
-                    console.log(error.response);
-                    console.groupEnd();
+                    log.error('Problem with response to', url);
+                    log.error(error.response);
                 } else {
                     // Something happened.
-                    console.log(error);
+                    log.error(error);
                 }
-                if (debugBreak) debugger;
                 return null;
             });
     },
 
 }
+
+// The end.
+// ............................................................................
+
 module.exports = net;

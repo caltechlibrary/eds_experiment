@@ -2,6 +2,8 @@
   <head>
     <title>Test</title>
     <script type="text/javascript" src="https://unpkg.com/vue"></script>
+    <script type="text/javascript" src="https://unpkg.com/loglevel"></script>
+    <script type="text/javascript" src="https://unpkg.com/loglevel-plugin-prefix"></script>
     <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <!-- Next line is to make syntax of config.js work for here and in node -->
     <script type="text/javascript">module = {}</script>
@@ -135,22 +137,31 @@
       <modal v-if="showEmptyStringModal" @close="showEmptyStringModal = false">
     </div>
     <script>
-
-     // Global constants.
+     // Global configuration.
      // .......................................................................
+
+     // Set the logging level.  Use 'trace' for debugging, 'warn' for normal.
+     log.setDefaultLevel('trace');
 
      // How long to wait on axios http post, in milliseconds.
      const postTimeout = 5 * 1000;
 
 
-     // Vue object definition.
+     // Main code.
      // .......................................................................
 
-     // register modal component
+     // Prefix log messages.
+     var log = log.noConflict();
+     var prefixer = prefix.noConflict();
+     prefixer.reg(log);
+     prefixer.apply(log);
+
+     // Register modal component.
      Vue.component("modal", {
        template: "#modal-template"
      });
 
+     // Define our Vue application.
      new Vue({
        el: '#app',
        data: {
