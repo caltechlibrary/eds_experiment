@@ -6,53 +6,188 @@
     <!-- Next line is to make syntax of config.js work for here and in node -->
     <script type="text/javascript">module = {}</script>
     <script type="text/javascript" src="./config.js"></script>
-</script>
+    <script type="text/x-template" id="modal-template">
+      <transition name="modal">
+        <div class="modal-mask">
+          <div class="modal-wrapper">
+            <div class="modal-container">
+              <div class="modal-header">
+                <slot name="header">Error</slot>
+              </div>
+              <div class="modal-body">
+                <slot name="body">
+                  An empty search string will not work.
+                </slot>
+              </div>
+              <div class="modal-footer">
+                <slot name="footer">
+                  <button class="modal-default-button" @click="$emit('close')">
+                    OK
+                  </button>
+                </slot>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </script>
+    <style>
+     .search-input {
+       margin: 2em auto; 
+       display: block;
+       border: 1px sold gray;
+       width: 75%;
+     }
+
+     .search-button {
+       display: block;
+       margin: 2em auto;
+     }
+
+     .output {
+       display: block;
+       margin: 2em auto;
+       width: 80%;
+     }
+
+     .modal-mask {
+       position: fixed;
+       z-index: 9998;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       background-color: rgba(0, 0, 0, 0.5);
+       display: table;
+       transition: opacity 0.3s ease;
+     }
+
+     .modal-wrapper {
+       display: table-cell;
+       vertical-align: middle;
+     }
+
+     .modal-container {
+       width: 300px;
+       margin: 0px auto;
+       padding: 20px 30px;
+       background-color: #fff;
+       display: block;
+       border: 1px solid #dedede;
+       border-radius: 0.5em;
+       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
+       transition: all 0.3s ease;
+       font-family: Helvetica, Arial, sans-serif;
+     }
+
+     .modal-header {
+       font-weight: bold;
+       margin-top: 0;
+       color: #992244;
+       text-align: center;
+     }
+
+     .modal-body {
+       margin: 20px 0;
+     }
+
+     .modal-footer {
+       padding-bottom: 1em;
+     }
+
+     .modal-default-button {
+       float: right;
+     }
+
+     /*
+      * The following styles are auto-applied to elements with
+      * transition="modal" when their visibility is toggled
+      * by Vue.js.
+      *
+      * You can easily play with the modal transition by editing
+      * these styles.
+      */
+
+     .modal-enter {
+       opacity: 0;
+     }
+
+     .modal-leave-active {
+       opacity: 0;
+     }
+
+     .modal-enter .modal-container,
+     .modal-leave-active .modal-container {
+       -webkit-transform: scale(1.1);
+       transform: scale(1.1);
+     }
+
+    </style>
   </head>
   <body>
-    <div id="app">{{ output }}
-      <button v-on:click="run">Click me</button>
+    <div id="app">
+      <input v-model="searchString" class="search-input" type="text" placeholder="Search string">
+      <button class="search-button" v-on:click="run">Search</button>
+      <div class="output">
+        {{ numResults }}
+      </div>
+      <modal v-if="showEmptyStringModal" @close="showEmptyStringModal = false">
     </div>
     <script>
+
+     // Global constants.
+     // .......................................................................
+
+     // How long to wait on axios http post, in milliseconds.
+     const postTimeout = 5 * 1000;
+
+     // Whether to print things to the console, for debugging.
+     const debugLog = true;
+
+     // Whether to break into the debugger on errors.
+     const debugBreak = false;
+
+
+     // Vue object definition.
+     // .......................................................................
+
+     // register modal component
+     Vue.component("modal", {
+       template: "#modal-template"
+     });
+
      new Vue({
        el: '#app',
        data: {
-         output: ''
+         searchString: '',
+         numResults: '',
+         showEmptyStringModal: false
        },
        methods: {
-         getAuthToken(authURL) {
-           let body = JSON.stringify({ "UserId": config.user, "Password": config.password });
-           let headers = {'Content-Type': 'application/json' };
-           let request = { method: 'post',
-                           url: config.corsProxy + authURL,
-                           headers: headers,
-                           data: body };
-           return axios(request)
-             .then(response => response.data)
-             .then(data => data.AuthToken)
-             .catch(error => { console.log(error); });
+
+         // Helper functions.
+         // ...................................................................
+
+         authToken() {
+           let body = JSON.stringify({ "UserId": config.user,
+                                       "Password": config.password });
+           return this.post(config.authURL, body)
+                      .then(data => data.AuthToken);
          },
 
-         getSessionToken(sessionEndpoint, authToken) {
-           let headers = {'x-authenticationToken': authToken,
-                          'Content-Type': 'application/json' };
-           let body    = {'Profile': 'edsapi'};
-           let request = { method: 'post',
-                           url: config.corsProxy + sessionEndpoint,
-                           headers: headers,
-                           data: body };
-           return axios(request)
-             .then(response => response.data)
-             .then(data => data.SessionToken)
-             .catch(error => { console.log(error); });
+         sessionToken(a_token) {
+           return this.post(config.sessionURL, {'Profile': 'edsapi'},
+                                 {'x-authenticationToken': a_token })
+                      .then(data => data.SessionToken);
          },
 
-         search(authToken, sessionToken, searchURL) {
-           let headers = {'x-authenticationToken': authToken,
-                          'x-sessionToken': sessionToken,
+         searchResults(a_token, s_token) {
+           let headers = {'x-authenticationToken': a_token,
+                          'x-sessionToken': s_token,
                           'Content-Type': 'application/json' };
            let body = {
              "SearchCriteria": {
-               "Queries":[ { "Term":"Pandemic" } ],
+               "Queries":[ { "Term": this.searchString } ],
                "SearchMode": "all",
                "IncludeFacets": "y",
                "Sort": "relevance",
@@ -68,30 +203,72 @@
              },
              "Actions": null
            };
-           let request = { method: 'post',
-                           url: config.corsProxy + searchURL,
-                           headers: headers,
-                           data: body };
-           return axios(request)
-             .then(response => response.data)
-             .then(data => data.SearchResult)
-             .catch(error => { console.log(error); });
+           return this.post(config.searchURL, body, headers)
+                      .then(data => data.SearchResult);
          },
 
-         async main(authURL, sessionURL, searchURL) {
-           let authToken = await this.getAuthToken(authURL);
-           let sessionToken = await this.getSessionToken(sessionURL, authToken);
-           let results = await this.search(authToken, sessionToken, searchURL);
-           console.log(results.Data.Records[6].Header);
-           this.output = results.Data.Records[6].Header;
+         /** Do an HTTP POST to the url, with the body, w/ optional headers. */
+         post(url, body, extra_headers = {}) {
+           let headers = Object.assign({'Content-Type': 'application/json' },
+                                       extra_headers, config.corsProxyHeaders);
+           let request = { method: 'post', url: config.corsProxy + url,
+                           headers: headers, data: body };
+
+           if (debugLog) {
+             console.group('>>>> post to "' + url + '"');
+             console.table(headers);
+             console.table(body);
+             console.groupEnd();
+           }
+
+           return axios(request)
+             .then(response => {
+               if (debugLog) {
+                 console.group('<<<< post response');
+                 console.log(response);
+                 console.groupEnd();
+               };                 
+               return response.data;
+             })
+             .catch(error => {
+               console.log(error);
+               if (debugBreak) debugger;
+               return null;
+             });
          },
+
+
+         // Main body.
+         // ...................................................................
 
          run() {
-           const authURL    = 'https://eds-api.ebscohost.com/authservice/rest/uidauth';
-           const sessionURL = 'https://eds-api.ebscohost.com/edsapi/rest/createsession';
-           const searchURL  = 'https://eds-api.ebscohost.com/edsapi/rest/Search';
-           this.main(authURL, sessionURL, searchURL);
-         }
+           // Sanity checks
+           // .................................................................
+
+           if (! this.searchString) {
+             this.showEmptyStringModal = true;
+             return false;
+           }
+
+           let authTokenPromise = this.authToken();
+
+           let sessionTokenPromise = authTokenPromise.then(
+             (atok) => {
+               return this.sessionToken(atok);
+             });
+
+           let searchPromise = Promise.all([authTokenPromise, sessionTokenPromise]).then(
+             (tokens) => {
+               return this.searchResults(tokens[0], tokens[1]);
+             });
+
+           let items = searchPromise.then(
+             (results) => {
+               stats = results.Statistics;
+               this.numResults = 'Total number of hits: ' + stats.TotalHits;
+               console.log(this.numResults);
+             });
+         },
        }
      })
     </script>
