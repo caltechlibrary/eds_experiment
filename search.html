@@ -133,7 +133,14 @@
              class="search-input" type="text" placeholder="Search string">
       <button v-on:click="run" class="search-button">Search</button>
       <div class="output">
-        {{ numResults }}
+        <span class="num-results">{{ numResults }}</span>
+        <div class="results-table">
+          <ul>
+            <li v-for="record in records">
+              {{ record.Items[0].Data }}
+            </li>
+          </ul>
+        </div>
       </div>
       <modal v-if="showEmptyStringModal" @close="showEmptyStringModal = false">
     </div>
@@ -166,9 +173,10 @@
      new Vue({
        el: '#app',
        data: {
+         showEmptyStringModal: false,
          searchString: '',
          numResults: '',
-         showEmptyStringModal: false
+         records: '',
        },
        methods: {
 
@@ -242,8 +250,10 @@
 
            let items = searchPromise.then(
              (results) => {
+               console.log(results);
                stats = results.Statistics;
                this.numResults = 'Total number of hits: ' + stats.TotalHits;
+               this.records = results.Data.Records;
                console.log(this.numResults);
              });
          },
