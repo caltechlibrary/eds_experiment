@@ -1,9 +1,12 @@
 <html>
   <head>
     <title>Test</title>
+    <link rel="stylesheet" href="https://unpkg.com/vue-spinners/dist/vue-spinners.css">
     <script type="text/javascript" src="https://unpkg.com/vue"></script>
+    <script type="text/javascript" src="https://unpkg.com/vue-spinners/dist/vue-spinners.browser.js"></script>
     <script type="text/javascript" src="https://unpkg.com/loglevel"></script>
     <script type="text/javascript" src="https://unpkg.com/he"></script>
+    <script type="text/javascript" src="https://unpkg.com/humanize-plus"></script>
     <script type="text/javascript" src="https://unpkg.com/loglevel-plugin-prefix"></script>
     <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <!-- Next line is to make syntax of config.js work for here and in node -->
@@ -160,6 +163,10 @@
        margin-right: 0.25em;
      }
      
+     .search-status {
+       display: block;
+     }
+
      .results-list {
        padding-left: 1em;
      }
@@ -171,6 +178,7 @@
              class="search-input" type="text" placeholder="Search string">
       <button v-on:click="run" class="search-button">Search</button>
       <div class="output">
+        <span class="search-status">{{ searchStatus }}<circ v-if="isSearching"></circ></span>
         <span class="num-results">{{ numResults }}</span>
         <div class="results-table">
           <ul class="results-list">
@@ -211,14 +219,18 @@
        template: "#modal-template"
      });
 
+     Vue.component('circ', VueSpinners.CircleSpinner);
+
      // Define our Vue application.
      new Vue({
        el: '#app',
        data: {
          showEmptyStringModal: false,
          searchString: '',
+         searchStatus: '',
          numResults: '',
          records: '',
+         isSearching: false,
        },
        methods: {
 
@@ -300,6 +312,9 @@
              return false;
            }
 
+           this.searchStatus = 'Searching for "' + this.searchString + '" ...';
+           this.isSearching = true;
+
            let authTokenPromise = this.authToken();
 
            let sessionTokenPromise = authTokenPromise.then(
@@ -314,9 +329,12 @@
 
            let items = searchPromise.then(
              (results) => {
+               this.isSearching = false;
+               this.searchStatus = 'Searching for "' + this.searchString + '" ... Done.';
                console.log(results);
                stats = results.Statistics;
-               this.numResults = 'Total number of hits: ' + stats.TotalHits;
+               this.numResults = 'Total number of hits: '
+                               + Humanize.intComma(stats.TotalHits) + '.';
                this.records = results.Data.Records;
                console.log(this.numResults);
              });
