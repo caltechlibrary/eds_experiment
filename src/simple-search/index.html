@@ -30,9 +30,13 @@
     <div id="app">
       <input v-model="searchString" v-on:keyup.enter="run"
              class="search-input" type="text" placeholder="Search string">
+
       <button v-on:click="run" class="search-button">Search</button>
+
       <div class="output">
-        <span class="search-status">{{ searchStatus }}<circ v-if="isSearching"></circ></span>
+        <span class="search-status">
+          {{ searchStatus }}<circ v-if="isSearching"></circ>
+        </span>
         <span class="num-results">{{ numResults }}</span>
         <div class="results-table">
           <ul class="results-list">
@@ -46,7 +50,8 @@
           </ul>
         </div>
       </div>
-      <modal v-if="showEmptyStringModal" @close="showEmptyStringModal = false">
+
+      <modal v-if="errorEmptyString" @close="errorEmptyString = false">
         <span slot="header">Error</span>
         <span slot="body">Cannot search for an empty string.</span>
       </modal>
@@ -81,14 +86,19 @@
               <div class="modal-header"><slot name="header"></slot></div>
               <div class="modal-body"><slot name="body"></slot></div>
               <div class="modal-footer">
-                <button class="modal-default-button" @click="$emit('close')">
+                <button id="ok-button" class="modal-default-button"
+                  @click="$emit('close')" @keydown.esc="$emit('close')">
                   OK
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </transition>`
+      </transition>`,
+       mounted: function() {
+         // Put focus on the button by default.
+         document.getElementById("ok-button").focus();
+       }
      });
 
      Vue.component('circ', VueSpinners.CircleSpinner);
@@ -97,7 +107,7 @@
      new Vue({
        el: '#app',
        data: {
-         showEmptyStringModal: false,
+         errorEmptyString: false,
          searchString: '',
          searchStatus: '',
          numResults: '',
@@ -183,7 +193,7 @@
 
            if (! this.searchString) {
              log.debug('empty search string');
-             this.showEmptyStringModal = true;
+             this.errorEmptyString = true;
              return false;
            }
 
