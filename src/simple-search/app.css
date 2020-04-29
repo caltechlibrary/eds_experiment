@@ -107,6 +107,7 @@
 }
 
 .modal-header {
+  display: block;
   font-weight: bold;
   margin-top: 0;
   color: #992244;
