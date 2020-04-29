@@ -3,12 +3,14 @@
     <title>Test</title>
     <script type="text/javascript" src="https://unpkg.com/vue"></script>
     <script type="text/javascript" src="https://unpkg.com/loglevel"></script>
+    <script type="text/javascript" src="https://unpkg.com/he"></script>
     <script type="text/javascript" src="https://unpkg.com/loglevel-plugin-prefix"></script>
     <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <!-- Next line is to make syntax of config.js work for here and in node -->
     <script type="text/javascript">module = {}</script>
     <script type="text/javascript" src="./config.js"></script>
     <script type="text/javascript" src="./net.js"></script>
+    <script type="text/javascript" src="./string.js"></script>
     <script type="text/x-template" id="modal-template">
       <transition name="modal">
         <div class="modal-mask">
@@ -125,6 +127,42 @@
        transform: scale(1.1);
      }
 
+     .pub-record {
+       display: block;
+       margin: 1em;
+     }
+
+     .pub-title {
+       display: block;
+       font-weight: bold;
+       margin-bottom: 0.25em;
+     }
+
+     .pub-authors {
+       display: block;
+       margin-bottom: 0.25em;
+     }
+
+     .pub-source {
+       display: block;
+       font-style: italic;
+     }
+     
+     .highlight {
+       background-color: #ffffcc;
+     }
+
+     .author {
+       display: inline-block;
+       border: 1px solid #ddd;
+       border-radius: 4px;
+       padding: 1px;
+       margin-right: 0.25em;
+     }
+     
+     .results-list {
+       padding-left: 1em;
+     }
     </style>
   </head>
   <body>
@@ -135,9 +173,13 @@
       <div class="output">
         <span class="num-results">{{ numResults }}</span>
         <div class="results-table">
-          <ul>
+          <ul class="results-list">
             <li v-for="record in records">
-              {{ record.Items[0].Data }}
+              <div class="pub-record">
+                <div class="pub-title">   <span v-html="filterEDStitle(record.Items[0].Data)"></span></div>
+                <div class="pub-authors"> <span v-html="filterEDSauthors(record.Items[1].Data)"></span></div>
+                <div class="pub-source">  <span v-html="filterEDSsource(record.Items[2].Data)"></span></div>
+              </div>
             </li>
           </ul>
         </div>
@@ -221,6 +263,28 @@
            };
            return net.post(config.searchURL, config.corsproxy, body, headers)
                      .then(data => data.SearchResult);
+         },
+
+         filterEDStitle(str) {
+           let htmlified = he.decode(str);  // Replace quoted HTML entities.
+           htmlified = htmlified.replaceAll(/<highlight>/i, '<span class="highlight">');
+           htmlified = htmlified.replaceAll(/<\/highlight>/i, '</span>');
+           return htmlified;
+         },
+
+         filterEDSauthors(str) {
+           let htmlified = he.decode(str);  // Replace quoted HTML entities.
+           htmlified = htmlified.replaceAll(/<searchlink.*?>(.+?)<\/searchlink>/i,
+                                            '<span class="author">$1</span>');
+           htmlified = htmlified.replaceAll(/<relatesto.*?>(.+?)<\/relatesto><i>(.+?)<\/i>/i,
+                                            '');
+           htmlified = htmlified.replace(/<br ?\/?>/gi, ' ');
+           return htmlified;
+         },
+
+         filterEDSsource(str) {
+           let htmlified = he.decode(str);  // Replace quoted HTML entities.
+           return htmlified;
          },
 
 
