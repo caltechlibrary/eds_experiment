@@ -2,6 +2,12 @@
   <head>
     <title>EDS API experiment</title>
 
+    <!-- Vue. Note: vue-spinners says to put things in this order. -->
+
+    <link rel="stylesheet" href="https://unpkg.com/vue-spinners/dist/vue-spinners.css">
+    <script type="text/javascript" src="https://unpkg.com/vue"></script>
+    <script type="text/javascript" src="https://unpkg.com/vue-spinners/dist/vue-spinners.browser.js"></script>
+
     <!-- Load general JavaScript dependencies. -->
 
     <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
@@ -10,49 +16,15 @@
     <script type="text/javascript" src="https://unpkg.com/he"></script>
     <script type="text/javascript" src="https://unpkg.com/humanize-plus"></script>
 
-    <!-- Vue. Note: vue-spinners says to put things in this order. -->
-
-    <link rel="stylesheet" href="https://unpkg.com/vue-spinners/dist/vue-spinners.css">
-    <script type="text/javascript" src="https://unpkg.com/vue"></script>
-    <script type="text/javascript" src="https://unpkg.com/vue-spinners/dist/vue-spinners.browser.js"></script>
-
     <!-- Our app. -->
 
     <!-- Next line is to make syntax here and in node -->
     <script type="text/javascript">module = {}</script>
-    <script type="text/javascript" src="config.js"></script>
+    <script type="text/javascript" src="app-settings.js"></script>
     <script type="text/javascript" src="lib/net.js"></script>
     <script type="text/javascript" src="lib/string.js"></script>
 
     <link rel="stylesheet" href="app.css"></script>
-
-    <script type="text/x-template" id="modal-template">
-      <transition name="modal">
-        <div class="modal-mask">
-          <div class="modal-wrapper">
-            <div class="modal-container">
-              <div class="modal-header">
-                <slot name="header">Error</slot>
-              </div>
-              <div class="modal-body">
-                <slot name="body">
-                  An empty search string will not work.
-                </slot>
-              </div>
-              <div class="modal-footer">
-                <slot name="footer">
-                  <button class="modal-default-button" @click="$emit('close')">
-                    OK
-                  </button>
-                </slot>
-              </div>
-            </div>
-          </div>
-        </div>
-      </transition>
-    </script>
-    <style>
-    </style>
   </head>
   <body>
     <div id="app">
@@ -75,6 +47,9 @@
         </div>
       </div>
       <modal v-if="showEmptyStringModal" @close="showEmptyStringModal = false">
+        <span slot="header">Error</span>
+        <span slot="body">Cannot search for an empty string.</span>
+      </modal>
     </div>
     <script>
      // Global configuration.
@@ -98,7 +73,22 @@
 
      // Register modal component.
      Vue.component("modal", {
-       template: "#modal-template"
+       template: `
+      <transition name="modal">
+        <div class="modal-mask">
+          <div class="modal-wrapper">
+            <div class="modal-container">
+              <div class="modal-header"><slot name="header"></slot></div>
+              <div class="modal-body"><slot name="body"></slot></div>
+              <div class="modal-footer">
+                <button class="modal-default-button" @click="$emit('close')">
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>`
      });
 
      Vue.component('circ', VueSpinners.CircleSpinner);
