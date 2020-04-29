@@ -21,6 +21,7 @@
     <!-- Next line is to make syntax here and in node -->
     <script type="text/javascript">module = {}</script>
     <script type="text/javascript" src="app-settings.js"></script>
+    <script type="text/javascript" src="lib/log.js"></script>
     <script type="text/javascript" src="lib/net.js"></script>
     <script type="text/javascript" src="lib/string.js"></script>
 
@@ -57,6 +58,7 @@
       </modal>
     </div>
     <script>
+
      // Global configuration.
      // .......................................................................
 
@@ -69,12 +71,6 @@
 
      // Main code.
      // .......................................................................
-
-     // Prefix log messages.
-     var log = log.noConflict();
-     var prefixer = prefix.noConflict();
-     prefixer.reg(log);
-     prefixer.apply(log);
 
      // Register modal component.
      Vue.component("modal", {
