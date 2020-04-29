@@ -34,6 +34,11 @@
 
       <button v-on:click="run" class="search-button">Search</button>
 
+      <modal v-if="errorEmptyString" v-on:close="errorEmptyString = false">
+        <span slot="header">Error</span>
+        <span slot="body">Cannot search for an empty string.</span>
+      </modal>
+
       <div class="output">
         <span class="search-status">
           {{ searchStatus }}<circ v-if="isSearching"></circ>
@@ -52,10 +57,6 @@
         </div>
       </div>
 
-      <modal v-if="errorEmptyString" @close="errorEmptyString = false">
-        <span slot="header">Error</span>
-        <span slot="body">Cannot search for an empty string.</span>
-      </modal>
     </div>
     <script>
 
@@ -72,7 +73,8 @@
      // Main code.
      // .......................................................................
 
-     // Register modal component.
+     Vue.component('circ', VueSpinners.CircleSpinner);
+
      Vue.component("modal", {
        template: `
       <transition name="modal">
@@ -83,7 +85,7 @@
               <div class="modal-body"><slot name="body"></slot></div>
               <div class="modal-footer">
                 <button id="ok-button" class="modal-default-button"
-                  @click="$emit('close')" @keydown.esc="$emit('close')">
+                  v-on:click="$emit('close')" v-on:keydown.esc="$emit('close')">
                   OK
                 </button>
               </div>
@@ -96,8 +98,6 @@
          document.getElementById("ok-button").focus();
        }
      });
-
-     Vue.component('circ', VueSpinners.CircleSpinner);
 
      // Define our Vue application.
      new Vue({
