@@ -1,19 +1,31 @@
 <html>
   <head>
-    <title>Test</title>
+    <title>EDS API experiment</title>
+
+    <!-- Load general JavaScript dependencies. -->
+
+    <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/loglevel"></script>
+    <script type="text/javascript" src="https://unpkg.com/loglevel-plugin-prefix"></script>
+    <script type="text/javascript" src="https://unpkg.com/he"></script>
+    <script type="text/javascript" src="https://unpkg.com/humanize-plus"></script>
+
+    <!-- Vue. Note: vue-spinners says to put things in this order. -->
+
     <link rel="stylesheet" href="https://unpkg.com/vue-spinners/dist/vue-spinners.css">
     <script type="text/javascript" src="https://unpkg.com/vue"></script>
     <script type="text/javascript" src="https://unpkg.com/vue-spinners/dist/vue-spinners.browser.js"></script>
-    <script type="text/javascript" src="https://unpkg.com/loglevel"></script>
-    <script type="text/javascript" src="https://unpkg.com/he"></script>
-    <script type="text/javascript" src="https://unpkg.com/humanize-plus"></script>
-    <script type="text/javascript" src="https://unpkg.com/loglevel-plugin-prefix"></script>
-    <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <!-- Next line is to make syntax of config.js work for here and in node -->
+
+    <!-- Our app. -->
+
+    <!-- Next line is to make syntax here and in node -->
     <script type="text/javascript">module = {}</script>
-    <script type="text/javascript" src="./config.js"></script>
-    <script type="text/javascript" src="./net.js"></script>
-    <script type="text/javascript" src="./string.js"></script>
+    <script type="text/javascript" src="config.js"></script>
+    <script type="text/javascript" src="lib/net.js"></script>
+    <script type="text/javascript" src="lib/string.js"></script>
+
+    <link rel="stylesheet" href="app.css"></script>
+
     <script type="text/x-template" id="modal-template">
       <transition name="modal">
         <div class="modal-mask">
@@ -40,136 +52,6 @@
       </transition>
     </script>
     <style>
-     .search-input {
-       margin: 2em auto; 
-       display: block;
-       border: 1px sold gray;
-       width: 75%;
-     }
-
-     .search-button {
-       display: block;
-       margin: 2em auto;
-     }
-
-     .output {
-       display: block;
-       margin: 2em auto;
-       width: 80%;
-     }
-
-     .modal-mask {
-       position: fixed;
-       z-index: 9998;
-       top: 0;
-       left: 0;
-       width: 100%;
-       height: 100%;
-       background-color: rgba(0, 0, 0, 0.5);
-       display: table;
-       transition: opacity 0.3s ease;
-     }
-
-     .modal-wrapper {
-       display: table-cell;
-       vertical-align: middle;
-     }
-
-     .modal-container {
-       width: 300px;
-       margin: 0px auto;
-       padding: 20px 30px;
-       background-color: #fff;
-       display: block;
-       border: 1px solid #dedede;
-       border-radius: 0.5em;
-       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
-       transition: all 0.3s ease;
-       font-family: Helvetica, Arial, sans-serif;
-     }
-
-     .modal-header {
-       font-weight: bold;
-       margin-top: 0;
-       color: #992244;
-       text-align: center;
-     }
-
-     .modal-body {
-       margin: 20px 0;
-     }
-
-     .modal-footer {
-       padding-bottom: 1em;
-     }
-
-     .modal-default-button {
-       float: right;
-     }
-
-     /*
-      * The following styles are auto-applied to elements with
-      * transition="modal" when their visibility is toggled
-      * by Vue.js.
-      *
-      * You can easily play with the modal transition by editing
-      * these styles.
-      */
-
-     .modal-enter {
-       opacity: 0;
-     }
-
-     .modal-leave-active {
-       opacity: 0;
-     }
-
-     .modal-enter .modal-container,
-     .modal-leave-active .modal-container {
-       -webkit-transform: scale(1.1);
-       transform: scale(1.1);
-     }
-
-     .pub-record {
-       display: block;
-       margin: 1em;
-     }
-
-     .pub-title {
-       display: block;
-       font-weight: bold;
-       margin-bottom: 0.25em;
-     }
-
-     .pub-authors {
-       display: block;
-       margin-bottom: 0.25em;
-     }
-
-     .pub-source {
-       display: block;
-       font-style: italic;
-     }
-     
-     .highlight {
-       background-color: #ffffcc;
-     }
-
-     .author {
-       display: inline-block;
-       border: 1px solid #ddd;
-       border-radius: 4px;
-       padding: 1px;
-       margin-right: 0.25em;
-     }
-     
-     .search-status {
-       display: block;
-     }
-
-     .results-list {
-       padding-left: 1em;
-     }
     </style>
   </head>
   <body>
@@ -229,7 +111,7 @@
          searchString: '',
          searchStatus: '',
          numResults: '',
-         records: '',
+         records: [],
          isSearching: false,
        },
        methods: {
@@ -240,11 +122,13 @@
          authToken() {
            let body = JSON.stringify({ "UserId": config.user,
                                        "Password": config.password });
+           log.debug('getting authentication token');
            return net.post(config.authURL, config.corsproxy, body)
                      .then(data => data.AuthToken);
          },
 
          sessionToken(a_token) {
+           log.debug('getting session token');
            return net.post(config.sessionURL, config.corsproxy,
                            {'Profile': 'edsapi'},
                            {'x-authenticationToken': a_token })
@@ -273,6 +157,7 @@
              },
              "Actions": null
            };
+           log.debug('sending search query');
            return net.post(config.searchURL, config.corsproxy, body, headers)
                      .then(data => data.SearchResult);
          },
@@ -304,16 +189,23 @@
          // ...................................................................
 
          run() {
-           // Sanity checks
-           // .................................................................
+           // Sanity checks.
 
            if (! this.searchString) {
+             log.debug('empty search string');
              this.showEmptyStringModal = true;
              return false;
            }
 
+           // Set up state for a new search.
+
+           log.debug('clearing state and starting a search')
+           this.records = [];
+           this.numResults = '';
            this.searchStatus = 'Searching for "' + this.searchString + '" ...';
            this.isSearching = true;
+
+           // Let's do this thing.
 
            let authTokenPromise = this.authToken();
 
@@ -329,6 +221,7 @@
 
            let items = searchPromise.then(
              (results) => {
+               log.debug('results received');
                this.isSearching = false;
                this.searchStatus = 'Searching for "' + this.searchString + '" ... Done.';
                console.log(results);
