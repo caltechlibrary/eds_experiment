@@ -1,3 +1,11 @@
+// ============================================================================
+// @file    net.js
+// @brief   Network utilities
+// @author  Michael Hucka <mhucka@caltech.edu>
+// @license Please see the file named LICENSE in the project directory
+// @website https://github.com/caltechlibrary/eds_experiment
+// ============================================================================
+
 // Preliminary configuration.
 // ............................................................................
 
