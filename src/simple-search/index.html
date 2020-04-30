@@ -59,7 +59,7 @@
           </div>
         </div>
 
-        <button v-on:click="run" class="search-button">Search</button>
+        <button v-on:click="run" class="search-button" id="search-button">Search</button>
 
         <modal v-if="errorEmptyString" v-on:close="errorEmptyString = false">
           <span slot="header">Error</span>
