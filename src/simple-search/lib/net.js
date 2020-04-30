@@ -9,10 +9,11 @@
 // Imports.
 // ............................................................................
 
-// Load our logging module if necessary.  If we're loaded from an HTML file
-// in a browser, this should be loaded already.
+// Load other modules if necessary.  If we're loaded from an HTML file in a
+// browser, they should be loaded already.
 try {
     var log = require('loglevel');
+    var obj = require('./obj');
 } catch (ex) {}
 
 
@@ -20,18 +21,19 @@ try {
 // ............................................................................
 
 var net = {
-    /** Do an HTTP POST to the url, with the body, w/ optional headers. */
-    post: function(url, proxy, body, extra_headers = {}) {
+    /** Do an HTTP POST to the url, with the data, w/ optional headers. */
+    post: function(url, proxy, data = {}, extra_headers = {}) {
         let headers = { ...{'Content-Type': 'application/json' },
                         ...extra_headers, ...proxy.headers };
         let params = { method: 'post',
                        url: proxy.url + url,
-                       headers: headers,
-                       data: body };
+                       headers: headers };
+        if (! obj.isEmpty(data))
+            params['data'] = data;
 
         log.debug('>>>> post to', url);
         log.debug('headers: ', headers);
-        log.debug('body: ', body);
+        log.debug('data: ', data);
 
         return axios(params)
             .then(response => {
