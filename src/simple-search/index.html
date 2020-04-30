@@ -211,8 +211,12 @@
                  let htmlified = he.decode(item.Data);
                  htmlified = htmlified.replaceAll(/<searchlink.*?>(.+?)<\/searchlink>/i,
                                                   '<span class="author">$1</span>');
-                 htmlified = htmlified.replaceAll(/<relatesto.*?>(.+?)<\/relatesto><i>(.+?)<\/i>/i,
-                                                  '');
+                 htmlified = htmlified.replaceAll(/<relatesto.*?>(.+?)<\/relatesto>/i, '');
+                 htmlified = htmlified.replaceAll(/<superscript>(.+?)<\/superscript>/i, '');
+                 htmlified = htmlified.replaceAll(/<i>(.+?)<\/i>/i, '');
+                 htmlified = htmlified.replace(/ \(AUTHOR\)/gi, ' ');
+                 htmlified = htmlified.replace(/, Editor/gi, ' ');
+                 htmlified = htmlified.replace(/, Series Editor/gi, ' ');
                  htmlified = htmlified.replace(/<br ?\/?>/gi, ' ');
                  return htmlified;
                }
