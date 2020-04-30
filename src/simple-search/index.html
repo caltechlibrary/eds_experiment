@@ -71,10 +71,18 @@
             <ul class="results-list">
               <li v-for="record in records">
                 <div class="pub-record">
-                  <div class="pub-title">   <span v-html="filterEDStitle(record)"></span></div>
-                  <div class="pub-authors"> <span v-html="filterEDSauthors(record)"></span></div>
-                  <div class="pub-source-type">  <span v-html="filterEDSsourceType(record)"></span></div>
-                  <div class="pub-source">  <span v-html="filterEDSsource(record)"></span></div>
+                  <div class="pub-title">
+                    <a v-bind:href="EDSlink(record)" v-html="filterEDStitle(record)"></a>
+                  </div>
+                  <div class="pub-authors">
+                    <span v-html="filterEDSauthors(record)"></span>
+                  </div>
+                  <div class="pub-source-type">
+                    <span v-html="filterEDSsourceType(record)"></span>
+                  </div>
+                  <div class="pub-source">
+                    <span v-html="filterEDSsource(record)"></span>
+                  </div>
                 </div>
               </li>
             </ul>
@@ -260,6 +268,16 @@
              return record.Header.PubType;
            } else {
              log.warn('Record has no Header property');
+             return '';
+           }
+         },
+
+         EDSlink(record) {
+           // Not everything has an authors field.
+           if (record.hasOwnProperty('PLink')) {
+             return record.PLink;
+           } else {
+             log.warn('Record has no PLink property');
              return '';
            }
          },
