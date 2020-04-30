@@ -26,37 +26,48 @@
     <script type="text/javascript" src="lib/string.js"></script>
 
     <link rel="stylesheet" href="app.css"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Heebo:400,400italic,500,500italic,700|Roboto:400,400italic,500,500italic,700|IBM+Plex+Mono:400,400italic,500,500italic">
   </head>
   <body>
     <div id="app">
-      <input v-model="searchString" v-on:keyup.enter="run"
-             class="search-input" type="text" placeholder="Search string">
+      <div class="app-wrapper">
+        <h1>Search the EBSCO Discovery Service</h1>
+        <input v-model="searchString" v-on:keyup.enter="run"
+               class="search-input" type="text" placeholder="Search string"/>
 
-      <button v-on:click="run" class="search-button">Search</button>
+        <div class="options">
+          <input v-model="highlightTerms" type="checkbox" id="optionHighlight"/>
+          <label for="optionHighlight" class="search-option">Highlight search terms in results?</label>
 
-      <modal v-if="errorEmptyString" v-on:close="errorEmptyString = false">
-        <span slot="header">Error</span>
-        <span slot="body">Cannot search for an empty string.</span>
-      </modal>
+          <input v-model="autocorrect" type="checkbox" id="optionAutocorrect"/>
+          <label for="optionAutocorrect" class="search-option">Let EBSCO autocorrect spelling?</label>
+        </div>
 
-      <div class="output">
-        <span class="search-status">
-          {{ searchStatus }}<circ v-if="isSearching"></circ>
-        </span>
-        <span class="num-results">{{ numResults }}</span>
-        <div class="results-table">
-          <ul class="results-list">
-            <li v-for="record in records">
-              <div class="pub-record">
-                <div class="pub-title">   <span v-html="filterEDStitle(record.Items[0].Data)"></span></div>
-                <div class="pub-authors"> <span v-html="filterEDSauthors(record.Items[1].Data)"></span></div>
-                <div class="pub-source">  <span v-html="filterEDSsource(record.Items[2].Data)"></span></div>
-              </div>
-            </li>
-          </ul>
+        <button v-on:click="run" class="search-button">Search</button>
+
+        <modal v-if="errorEmptyString" v-on:close="errorEmptyString = false">
+          <span slot="header">Error</span>
+          <span slot="body">Cannot search for an empty string.</span>
+        </modal>
+
+        <div class="output">
+          <span class="search-status">
+            {{ searchStatus }}<circ v-if="isSearching"></circ>
+          </span>
+          <span class="num-results">{{ numResults }}</span>
+          <div class="results-table">
+            <ul class="results-list">
+              <li v-for="record in records">
+                <div class="pub-record">
+                  <div class="pub-title">   <span v-html="filterEDStitle(record)"></span></div>
+                  <div class="pub-authors"> <span v-html="filterEDSauthors(record)"></span></div>
+                  <div class="pub-source">  <span v-html="filterEDSsource(record)"></span></div>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
-
     </div>
     <script>
 
@@ -105,6 +116,8 @@
        data: {
          errorEmptyString: false,
          searchString: '',
+         highlightTerms: true,
+         autocorrect: true,
          searchStatus: '',
          numResults: '',
          records: [],
@@ -137,18 +150,18 @@
                           'Content-Type': 'application/json' };
            let body = {
              "SearchCriteria": {
-               "Queries":[ { "Term": this.searchString } ],
+               "Queries": [ { "Term": this.searchString } ],
                "SearchMode": "all",
                "IncludeFacets": "y",
                "Sort": "relevance",
                "AutoSuggest": "n",
-               "AutoCorrect": "n"
+               "AutoCorrect": this.autocorrect ? "y" : "n",
              },
              "RetrievalCriteria": {
                "View": "brief",
                "ResultsPerPage": 20,
                "PageNumber": 1,
-               "Highlight": "y",
+               "Highlight": this.highlightTerms ? "y" : "n",
                "IncludeImageQuickView": "n"
              },
              "Actions": null
@@ -158,26 +171,67 @@
                      .then(data => data.SearchResult);
          },
 
-         filterEDStitle(str) {
-           let htmlified = he.decode(str);  // Replace quoted HTML entities.
-           htmlified = htmlified.replaceAll(/<highlight>/i, '<span class="highlight">');
-           htmlified = htmlified.replaceAll(/<\/highlight>/i, '</span>');
-           return htmlified;
+         filterEDStitle(record) {
+           if (record.hasOwnProperty('Items')) {
+             for (var item of record.Items) {
+               if (item.Label === 'Title') {
+                 let htmlified = he.decode(item.Data);
+                 htmlified = htmlified.replaceAll(/<highlight>/i, '<span class="highlight">');
+                 htmlified = htmlified.replaceAll(/<\/highlight>/i, '</span>');
+                 return htmlified;
+               };
+             };
+             log.warn('Record has no Title item');
+             return '';
+           } else {
+             log.warn('Record has no Items array');
+             return '';
+           }
          },
 
-         filterEDSauthors(str) {
-           let htmlified = he.decode(str);  // Replace quoted HTML entities.
-           htmlified = htmlified.replaceAll(/<searchlink.*?>(.+?)<\/searchlink>/i,
-                                            '<span class="author">$1</span>');
-           htmlified = htmlified.replaceAll(/<relatesto.*?>(.+?)<\/relatesto><i>(.+?)<\/i>/i,
-                                            '');
-           htmlified = htmlified.replace(/<br ?\/?>/gi, ' ');
-           return htmlified;
+         filterEDSauthors(record) {
+           // Not everything has an authors field.
+           if (record.hasOwnProperty('Items')) {
+             for (var item of record.Items) {
+               if (item.Label === 'Authors') {
+                 let htmlified = he.decode(item.Data);
+                 htmlified = htmlified.replaceAll(/<searchlink.*?>(.+?)<\/searchlink>/i,
+                                                  '<span class="author">$1</span>');
+                 htmlified = htmlified.replaceAll(/<relatesto.*?>(.+?)<\/relatesto><i>(.+?)<\/i>/i,
+                                                  '');
+                 htmlified = htmlified.replace(/<br ?\/?>/gi, ' ');
+                 return htmlified;
+               }
+             };
+             if (record.Items[0].Label === 'Title') 
+               log.warn('Record has no Authors: ' + record.Items[0].Data);
+             else
+               log.warn('Record with no Authors encountered');
+             return '';
+           } else {
+             log.warn('Record has no Items array');
+             return '';
+           }
          },
 
-         filterEDSsource(str) {
-           let htmlified = he.decode(str);  // Replace quoted HTML entities.
-           return htmlified;
+         filterEDSsource(record) {
+           // Not everything has an authors field.
+           if (record.hasOwnProperty('Items')) {
+             for (var item of record.Items) {
+               if (item.Label === 'Source') {
+                 let htmlified = he.decode(item.Data);
+                 return htmlified;
+               }
+             };
+             if (record.Items[0].Label === 'Title') 
+               log.warn('Record has no Source: ' + record.Items[0].Data);
+             else
+               log.warn('Record with no Source encountered');
+             return '';
+           } else {
+             log.warn('Record has no Items array');
+             return '';
+           }
          },
 
 
