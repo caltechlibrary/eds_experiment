@@ -104,6 +104,10 @@ h1 {
   margin-right: 1em;
 }
 
+.pub-source-type:after {
+  content: '.';
+}
+
 .pub-source-type:before {
   content: '(';
 }
@@ -111,6 +115,20 @@ h1 {
 .pub-source-type:after {
   content: ')';
 }
+
+.pub-doi {
+  display: block;
+  color: #22aadd;
+}
+
+.pub-doi a {
+  color: #22aadd;
+}
+
+.pub-doi:before {
+  content: "DOI: ";
+}
+
 
 .highlight {
   background-color: #ffffcc;

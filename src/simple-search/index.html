@@ -72,7 +72,7 @@
               <li v-for="record in records">
                 <div class="pub-record">
                   <div class="pub-title">
-                    <a v-bind:href="pubURL(record)" v-html="pubTitle(record)"></a>
+                    <span v-html="pubTitle(record)"></span>
                   </div>
                   <div class="pub-authors">
                     <span v-html="pubAuthors(record)"></span>
@@ -82,6 +82,9 @@
                   </div>
                   <div class="pub-source">
                     <span v-html="pubSource(record)"></span>
+                  </div>
+                  <div class="pub-doi">
+                    <a v-bind:href="pubURL(record)" v-html="pubDOI(record)"></a>
                   </div>
                 </div>
               </li>
@@ -231,10 +234,7 @@
                  return htmlified;
                }
              };
-             if (record.Items[0].Label === 'Title') 
-               log.warn('Record has no Authors: ' + record.Items[0].Data);
-             else
-               log.warn('Record with no Authors encountered');
+             this.warnMissing(record, 'Authors');
              return '';
            } else {
              log.warn('Record has no Items array');
@@ -251,10 +251,7 @@
                  return htmlified;
                }
              };
-             if (record.Items[0].Label === 'Title') 
-               log.warn('Record has no Source: ' + record.Items[0].Data);
-             else
-               log.warn('Record with no Source encountered');
+             this.warnMissing(record, 'Source');
              return '';
            } else {
              log.warn('Record has no Items array');
@@ -267,7 +264,7 @@
            if (record.hasOwnProperty('Header')) {
              return record.Header.PubType;
            } else {
-             log.warn('Record has no Header property');
+             this.warnMissing(record, 'Header');
              return '';
            }
          },
@@ -277,14 +274,43 @@
            if (record.hasOwnProperty('PLink')) {
              return record.PLink;
            } else {
-             log.warn('Record has no PLink property');
+             this.warnMissing(record, 'PLink');
              return '';
            }
+         },
+
+         pubDOI(record) {
+           // Not everything has an authors field.
+           if (! record.hasOwnProperty('RecordInfo')) {
+             this.warnMissing(record, 'RecordInfo');
+             return '';
+           };
+           if (! record.RecordInfo.hasOwnProperty('BibRecord')) {
+             this.warnMissing(record, 'RecordInfo.BibRecord');           
+             return '';
+           };
+           if (! record.RecordInfo.BibRecord.hasOwnProperty('BibEntity')) {
+             this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity');
+             return '';
+           };
+           let entity = record.RecordInfo.BibRecord.BibEntity;
+           for (var item of entity.Identifiers) {
+             if (item.Type === 'doi')
+               return item.Value;
+           }
+           return '';
          },
 
          setSortMode(mode) {
            this.sortMode = mode;
            log.debug(`${mode} sort mode selected`);
+         },
+
+         warnMissing(record, field) {
+             if (record.hasOwnProperty('Items') && record.Items[0].Label === 'Title')
+               log.warn('record has no ' + field + ': ' + record.Items[0].Data);
+             else
+               log.warn('record with no RecordInfo encountered');
          },
 
 
