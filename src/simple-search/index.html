@@ -72,16 +72,16 @@
               <li v-for="record in records">
                 <div class="pub-record">
                   <div class="pub-title">
-                    <a v-bind:href="EDSlink(record)" v-html="filterEDStitle(record)"></a>
+                    <a v-bind:href="pubURL(record)" v-html="pubTitle(record)"></a>
                   </div>
                   <div class="pub-authors">
-                    <span v-html="filterEDSauthors(record)"></span>
+                    <span v-html="pubAuthors(record)"></span>
                   </div>
                   <div class="pub-source-type">
-                    <span v-html="filterEDSsourceType(record)"></span>
+                    <span v-html="pubType(record)"></span>
                   </div>
                   <div class="pub-source">
-                    <span v-html="filterEDSsource(record)"></span>
+                    <span v-html="pubSource(record)"></span>
                   </div>
                 </div>
               </li>
@@ -195,7 +195,7 @@
                      .then(data => data.SearchResult);
          },
 
-         filterEDStitle(record) {
+         pubTitle(record) {
            if (record.hasOwnProperty('Items')) {
              for (var item of record.Items) {
                if (item.Label === 'Title') {
@@ -213,7 +213,7 @@
            }
          },
 
-         filterEDSauthors(record) {
+         pubAuthors(record) {
            // Not everything has an authors field.
            if (record.hasOwnProperty('Items')) {
              for (var item of record.Items) {
@@ -242,7 +242,7 @@
            }
          },
 
-         filterEDSsource(record) {
+         pubSource(record) {
            // Not everything has an authors field.
            if (record.hasOwnProperty('Items')) {
              for (var item of record.Items) {
@@ -262,7 +262,7 @@
            }
          },
 
-         filterEDSsourceType(record) {
+         pubType(record) {
            // Not everything has an authors field.
            if (record.hasOwnProperty('Header')) {
              return record.Header.PubType;
@@ -272,7 +272,7 @@
            }
          },
 
-         EDSlink(record) {
+         pubURL(record) {
            // Not everything has an authors field.
            if (record.hasOwnProperty('PLink')) {
              return record.PLink;
