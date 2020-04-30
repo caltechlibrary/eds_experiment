@@ -1,13 +1,58 @@
-.search-input {
-  margin: 2em auto; 
+html {
+  font-family: 'Heebo', sans-serif;
+  font-weight: 400;
+  color: #444;
+}
+
+h1 {
+  text-align: center;
+  font-size: 16pt;
+}
+
+.app-wrapper {
+  margin-top: 2em;
+  margin-left: auto;
+  margin-right: auto;
+  width: 90%;
+}
+
+.options {
   display: block;
-  border: 1px sold gray;
-  width: 75%;
+  font-size: 11pt;
+  margin-left: 2em;
+  margin-right: 2em;
+}
+
+.search-option {
+  margin-right: 2em;
+}
+
+.labeled-checkbox {
+  height: 2em;
+}
+
+#select-sort {
+  float: right;
+  margin-top: -0.35em;
+}
+
+.select-sort {
+  display: inline-block;
+  margin-left: auto;
+  width: 10em;
 }
 
 .search-button {
   display: block;
   margin: 2em auto;
+}
+
+.search-input {
+  font-size: 12pt;
+  margin: 1em auto; 
+  display: block;
+  border: 1px sold gray;
+  width: 100%;
 }
 
 .search-status {
@@ -16,8 +61,16 @@
 
 .output {
   display: block;
-  margin: 2em auto;
-  width: 80%;
+  margin: 1em auto;
+}
+
+.results-list {
+  padding-left: 1.2em;
+  padding-right: 1.2em;
+}
+
+.results-list li {
+  padding-left: 0;
 }
 
 .pub-record {
@@ -31,14 +84,32 @@
   margin-bottom: 0.25em;
 }
 
+.pub-title a {
+  color: black;
+}
+
 .pub-authors {
   display: block;
   margin-bottom: 0.25em;
 }
 
 .pub-source {
-  display: block;
+  display: inline;
   font-style: italic;
+}
+
+.pub-source-type {
+  display: inline;
+  color: #aa22aa;
+  margin-right: 1em;
+}
+
+.pub-source-type:before {
+  content: '(';
+}
+
+.pub-source-type:after {
+  content: ')';
 }
 
 .highlight {
@@ -51,10 +122,6 @@
   border-radius: 4px;
   padding: 1px;
   margin-right: 0.25em;
-}
-
-.results-list {
-  padding-left: 1em;
 }
 
 /* The following styles are auto-applied to elements with transition="modal"
