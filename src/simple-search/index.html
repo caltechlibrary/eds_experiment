@@ -2,11 +2,11 @@
   <head>
     <title>EDS API experiment</title>
 
-    <!-- Vue. Note: vue-spinners says to put things in this order. -->
-
-    <link rel="stylesheet" href="https://unpkg.com/vue-spinners/dist/vue-spinners.css">
     <script type="text/javascript" src="https://unpkg.com/vue"></script>
     <script type="text/javascript" src="https://unpkg.com/vue-spinners"></script>
+    <link rel="stylesheet" href="https://unpkg.com/vue-spinners/dist/vue-spinners.css">
+    <script type="text/javascript" src="https://unpkg.com/vue-select"></script>
+    <link rel="stylesheet" href="https://unpkg.com/vue-select@latest/dist/vue-select.css">
 
     <!-- Load general JavaScript dependencies. -->
 
@@ -37,11 +37,22 @@
 
         <div class="options">
           <input v-model="highlightTerms" type="checkbox" id="optionHighlight"/>
-          <label for="optionHighlight" class="search-option">Highlight search terms in results?</label>
+          <label for="optionHighlight" class="search-option">
+            Highlight search terms in results?
+          </label>
+
+          <span id="select-sort">Sort results:
+            <v-select v-model="sortMode" :options="sortOptions" class="select-sort"></v-select>
+          </span>
+
+          <br>
 
           <input v-model="autocorrect" type="checkbox" id="optionAutocorrect"/>
-          <label for="optionAutocorrect" class="search-option">Let EBSCO autocorrect spelling?</label>
+          <label for="optionAutocorrect" class="search-option">
+            Let EBSCO autocorrect spelling?
+          </label>
         </div>
+
 
         <button v-on:click="run" class="search-button">Search</button>
 
@@ -85,6 +96,7 @@
      // .......................................................................
 
      Vue.component('circ', VueSpinners.CircleSpinner);
+     Vue.component('v-select', VueSelect.VueSelect);
 
      Vue.component("modal", {
        template: `
@@ -122,6 +134,8 @@
          numResults: '',
          records: [],
          isSearching: false,
+         sortOptions: ['relevance', 'date'],
+         sortMode: 'relevance',
        },
        methods: {
 
@@ -153,7 +167,7 @@
                "Queries": [ { "Term": this.searchString } ],
                "SearchMode": "all",
                "IncludeFacets": "y",
-               "Sort": "relevance",
+               "Sort": this.sortMode,
                "AutoSuggest": "n",
                "AutoCorrect": this.autocorrect ? "y" : "n",
              },
@@ -232,6 +246,11 @@
              log.warn('Record has no Items array');
              return '';
            }
+         },
+
+         setSortMode(mode) {
+           this.sortMode = mode;
+           log.debug(`${mode} sort mode selected`);
          },
 
 
