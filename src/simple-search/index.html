@@ -36,23 +36,24 @@
                class="search-input" type="text" placeholder="Search string"/>
 
         <div class="options">
-          <input v-model="highlightTerms" type="checkbox" id="optionHighlight"/>
-          <label for="optionHighlight" class="search-option">
-            Highlight search terms in results?
-          </label>
-
           <span id="select-sort">Sort results:
             <v-select v-model="sortMode" :options="sortOptions" class="select-sort"></v-select>
           </span>
 
-          <br>
+          <div class="labeled-checkbox">
+            <input v-model="highlightTerms" type="checkbox" id="optionHighlight"/>
+            <label for="optionHighlight" class="search-option">
+              Highlight search terms in results?
+            </label>
+          </div>
 
-          <input v-model="autocorrect" type="checkbox" id="optionAutocorrect"/>
-          <label for="optionAutocorrect" class="search-option">
-            Let EBSCO autocorrect spelling?
-          </label>
+          <div class="labeled-checkbox">
+            <input v-model="autocorrect" type="checkbox" id="optionAutocorrect"/>
+            <label for="optionAutocorrect" class="search-option">
+              Let EBSCO autocorrect spelling?
+            </label>
+          </div>
         </div>
-
 
         <button v-on:click="run" class="search-button">Search</button>
 
