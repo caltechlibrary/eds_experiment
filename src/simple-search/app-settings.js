@@ -5,7 +5,7 @@ const config = {
 
     // If using a CORS proxy, fill out the values below.
     "corsproxy"        : {
-        "url": 'http://synonym.caltech.edu:8090/',
+        "url": 'https://synonym.caltech.edu:8090/',
         "headers": {'X-Proxy-Cors': 'true' }
     },
 
