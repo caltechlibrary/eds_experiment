@@ -23,6 +23,7 @@
     <script type="text/javascript" src="app-settings.js"></script>
     <script type="text/javascript" src="lib/log.js"></script>
     <script type="text/javascript" src="lib/net.js"></script>
+    <script type="text/javascript" src="lib/obj.js"></script>
     <script type="text/javascript" src="lib/string.js"></script>
 
     <link rel="stylesheet" href="app.css"></script>
@@ -170,11 +171,18 @@
          // ...................................................................
 
          authToken() {
-           let body = JSON.stringify({ "UserId": config.user,
-                                       "Password": config.password });
-           log.debug('getting authentication token');
-           return net.post(config.authURL, config.corsproxy, body)
-                     .then(data => data.AuthToken);
+           // If config has a user & password, use UID auth, else we use IP.
+           if (config.user && config.password) {
+             log.debug('getting authentication token using UID auth method');
+             let data = JSON.stringify({ "UserId": config.user,
+                                         "Password": config.password });
+             return net.post(config.UIDauthURL, config.corsproxy, data)
+                       .then(data => data.AuthToken);
+           } else {
+             log.debug('getting authentication token using IP auth method');
+             return net.post(config.IPauthURL, config.corsproxy)
+                       .then(data => data.AuthToken);
+           }
          },
 
          sessionToken(a_token) {
@@ -189,7 +197,7 @@
            let headers = {'x-authenticationToken': a_token,
                           'x-sessionToken': s_token,
                           'Content-Type': 'application/json' };
-           let body = {
+           let data = {
              "SearchCriteria": {
                "Queries": [ { "Term": this.searchString } ],
                "SearchMode": "all",
@@ -209,7 +217,7 @@
            };
            log.debug('sending search query');
            console.log(this.perPage);
-           return net.post(config.searchURL, config.corsproxy, body, headers)
+           return net.post(config.searchURL, config.corsproxy, data, headers)
                      .then(data => data.SearchResult);
          },
 
