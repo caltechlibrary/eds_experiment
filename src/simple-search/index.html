@@ -73,6 +73,7 @@
                 <div class="pub-record">
                   <div class="pub-title">   <span v-html="filterEDStitle(record)"></span></div>
                   <div class="pub-authors"> <span v-html="filterEDSauthors(record)"></span></div>
+                  <div class="pub-source-type">  <span v-html="filterEDSsourceType(record)"></span></div>
                   <div class="pub-source">  <span v-html="filterEDSsource(record)"></span></div>
                 </div>
               </li>
@@ -249,6 +250,16 @@
              return '';
            } else {
              log.warn('Record has no Items array');
+             return '';
+           }
+         },
+
+         filterEDSsourceType(record) {
+           // Not everything has an authors field.
+           if (record.hasOwnProperty('Header')) {
+             return record.Header.PubType;
+           } else {
+             log.warn('Record has no Header property');
              return '';
            }
          },
