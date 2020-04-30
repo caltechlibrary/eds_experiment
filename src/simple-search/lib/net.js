@@ -6,7 +6,7 @@
 // @website https://github.com/caltechlibrary/eds_experiment
 // ============================================================================
 
-// Preliminary configuration.
+// Imports.
 // ............................................................................
 
 // Load our logging module if necessary.  If we're loaded from an HTML file
