@@ -47,6 +47,10 @@
             </label>
           </div>
 
+          <span id="results-per-page">Results per page:
+            <v-select v-model="perPage" :options="perPageOptions" class="select-sort"></v-select>
+          </span>
+
           <div class="labeled-checkbox">
             <input v-model="autocorrect" type="checkbox" id="optionAutocorrect"/>
             <label for="optionAutocorrect" class="search-option">
@@ -68,8 +72,8 @@
           </span>
           <span class="num-results">{{ numResults }}</span>
           <div class="results-table">
-            <ul class="results-list">
-              <li v-for="record in records">
+            <ol class="results-list">
+              <li v-for="record in records" v-bind:value="pubResultId(record)">
                 <div class="pub-record">
                   <div class="pub-title">
                     <span v-html="pubTitle(record)"></span>
@@ -88,7 +92,7 @@
                   </div>
                 </div>
               </li>
-            </ul>
+            </ol>
           </div>
         </div>
       </div>
@@ -149,6 +153,8 @@
          isSearching: false,
          sortOptions: ['relevance', 'date'],
          sortMode: 'relevance',
+         perPage: 20,
+         perPageOptions: ['5', '10', '20', '50', '100'],
        },
        methods: {
 
@@ -186,7 +192,7 @@
              },
              "RetrievalCriteria": {
                "View": "brief",
-               "ResultsPerPage": 20,
+               "ResultsPerPage": this.perPage,
                "PageNumber": 1,
                "Highlight": this.highlightTerms ? "y" : "n",
                "IncludeImageQuickView": "n"
@@ -194,6 +200,7 @@
              "Actions": null
            };
            log.debug('sending search query');
+           console.log(this.perPage);
            return net.post(config.searchURL, config.corsproxy, body, headers)
                      .then(data => data.SearchResult);
          },
@@ -208,11 +215,11 @@
                  return htmlified;
                };
              };
-             log.warn('Record has no Title item');
-             return '';
+             this.warnMissing(record, 'Title element in Items array');
+             return 'missing';
            } else {
-             log.warn('Record has no Items array');
-             return '';
+             log.warn('record has no Items array');
+             return 'missing';
            }
          },
 
@@ -235,10 +242,10 @@
                }
              };
              this.warnMissing(record, 'Authors');
-             return '';
+             return 'missing';
            } else {
              log.warn('Record has no Items array');
-             return '';
+             return 'missing';
            }
          },
 
@@ -252,10 +259,10 @@
                }
              };
              this.warnMissing(record, 'Source');
-             return '';
+             return 'missing';
            } else {
              log.warn('Record has no Items array');
-             return '';
+             return 'missing';
            }
          },
 
@@ -265,7 +272,7 @@
              return record.Header.PubType;
            } else {
              this.warnMissing(record, 'Header');
-             return '';
+             return 'missing';
            }
          },
 
@@ -275,7 +282,17 @@
              return record.PLink;
            } else {
              this.warnMissing(record, 'PLink');
-             return '';
+             return 'missing';
+           }
+         },
+
+         pubResultId(record) {
+           // Not everything has an authors field.
+           if (record.hasOwnProperty('ResultId')) {
+             return record.ResultId;
+           } else {
+             this.warnMissing(record, 'ResultId');
+             return 'missing';
            }
          },
 
@@ -283,22 +300,27 @@
            // Not everything has an authors field.
            if (! record.hasOwnProperty('RecordInfo')) {
              this.warnMissing(record, 'RecordInfo');
-             return '';
+             return 'missing';
            };
            if (! record.RecordInfo.hasOwnProperty('BibRecord')) {
              this.warnMissing(record, 'RecordInfo.BibRecord');           
-             return '';
+             return 'missing';
            };
            if (! record.RecordInfo.BibRecord.hasOwnProperty('BibEntity')) {
              this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity');
-             return '';
+             return 'missing';
            };
            let entity = record.RecordInfo.BibRecord.BibEntity;
-           for (var item of entity.Identifiers) {
-             if (item.Type === 'doi')
-               return item.Value;
-           }
-           return '';
+           if (! entity.hasOwnProperty('Identifiers')) {
+             this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity.Identifiers');
+             return 'missing';
+           } else {
+             for (var item of entity.Identifiers) {
+               if (item.Type === 'doi')
+                 return item.Value;
+             }
+           };
+           return 'missing';
          },
 
          setSortMode(mode) {
@@ -307,10 +329,12 @@
          },
 
          warnMissing(record, field) {
-             if (record.hasOwnProperty('Items') && record.Items[0].Label === 'Title')
-               log.warn('record has no ' + field + ': ' + record.Items[0].Data);
-             else
-               log.warn('record with no RecordInfo encountered');
+           if (record.hasOwnProperty('ResultId'))
+             log.warn('record #', record.ResultId, 'has no', field, ':', record);
+           else if (record.hasOwnProperty('Items') && record.Items[0].Label === 'Title')
+             log.warn('record has no ResultId or', field, ':', record);
+           else
+             log.warn('record has no ResultId, title, or', field, 'property:', record);
          },
 
 
