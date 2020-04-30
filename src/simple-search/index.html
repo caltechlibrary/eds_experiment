@@ -26,13 +26,13 @@
     <script type="text/javascript" src="lib/string.js"></script>
 
     <link rel="stylesheet" href="app.css"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Heebo:400,400italic,500,500italic,700|Roboto:400,400italic,500,500italic,700|IBM+Plex+Mono:400,400italic,500,500italic">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Heebo:400,400italic,500,500italic,700|Roboto:400,400italic,500,500italic,700">
   </head>
   <body>
     <div id="app">
       <div class="app-wrapper">
         <h1>Search the EBSCO Discovery Service</h1>
-        <input v-model="searchString" v-on:keyup.enter="run"
+        <input v-model="searchString" v-on:keyup.enter="run(currentPage)"
                class="search-input" type="text" placeholder="Search string"/>
 
         <div class="options">
@@ -59,7 +59,8 @@
           </div>
         </div>
 
-        <button v-on:click="run" class="search-button" id="search-button">Search</button>
+        <button v-on:click="run(currentPage)" 
+                class="search-button" id="search-button">Search</button>
 
         <modal v-if="errorEmptyString" v-on:close="errorEmptyString = false">
           <span slot="header">Error</span>
@@ -93,6 +94,12 @@
                 </div>
               </li>
             </ol>
+          </div>
+          <div class="paginator">
+            <button v-if="currentPage > 1" v-on:click="run(currentPage - 1)"
+                    class="paging-button" id="paging-button">&larr; Previous page</button>
+            <button v-if="records.length > 0" v-on:click="run(currentPage + 1)"
+                    class="paging-button" id="paging-button">Next page &rarr;</button>
           </div>
         </div>
       </div>
@@ -155,6 +162,7 @@
          sortMode: 'relevance',
          perPage: 20,
          perPageOptions: ['5', '10', '20', '50', '100'],
+         currentPage: 1,
        },
        methods: {
 
@@ -193,7 +201,7 @@
              "RetrievalCriteria": {
                "View": "brief",
                "ResultsPerPage": this.perPage,
-               "PageNumber": 1,
+               "PageNumber": this.currentPage,
                "Highlight": this.highlightTerms ? "y" : "n",
                "IncludeImageQuickView": "n"
              },
@@ -341,7 +349,7 @@
          // Main body.
          // ...................................................................
 
-         run() {
+         run(nextPage = 0) {
            // Sanity checks.
 
            if (! this.searchString) {
@@ -357,6 +365,9 @@
            this.numResults = '';
            this.searchStatus = 'Searching for "' + this.searchString + '" ...';
            this.isSearching = true;
+
+           log.debug('page =', nextPage);
+           this.currentPage = nextPage;
 
            // Let's do this thing.
 
