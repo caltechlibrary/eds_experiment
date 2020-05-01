@@ -17,17 +17,28 @@ try {
 } catch (ex) {}
 
 
+// Constants that we may want to adjust at some point in the future.
+// ............................................................................
+
+const responseTimeout   = 5 * 1000;       // Wait for 5 sec.
+const connectionTimeout = 5 * 1000;       // Wait for 5 sec.
+
+
 // Main code.
 // ............................................................................
 
+const CancelToken = axios.CancelToken;
+const source = CancelToken.source();
+
 var net = {
-    /** Do an HTTP POST to the url, with the data, w/ optional headers. */
     post: function(url, proxy, data = {}, extra_headers = {}) {
         let headers = { ...{'Content-Type': 'application/json' },
                         ...extra_headers, ...proxy.headers };
         let params = { method: 'post',
                        url: proxy.url + url,
-                       headers: headers };
+                       headers: headers,
+                       timeout: responseTimeout,
+                       cancelToken: source.token };
         if (! obj.isEmpty(data))
             params['data'] = data;
 
@@ -35,27 +46,40 @@ var net = {
         log.debug('headers: ', headers);
         log.debug('data: ', data);
 
+        setTimeout(() => {
+            source.cancel('Connection attempt timed out');
+        }, connectionTimeout);
+
         return axios(params)
             .then(response => {
                 log.debug('<<<< post response');
                 log.debug(response);
                 return response.data;
             })
-            .catch(error => {
-                if (error.request) {
+            .catch(exception => {
+                if (axios.isCancel(exception)) {
+                    log.warn('connection request cancelled:', exception.message);
+                    return exception.message;
+                } else if (exception.request) {
                     // The request was made but no response was received.
-                    log.error('Problem with post to', url);
-                    log.error(error.request);
-                } else if (error.response) {
+                    log.error('problem with post to', url);
+                    log.error(exception.request);
+                    return exception.request;
+                } else if (exception.response) {
                     // Request was made and server responded.
-                    log.error('Problem with response to', url);
-                    log.error(error.response);
+                    log.error('problem with response to', url);
+                    log.error(exception.response);
+                    return exception.response;
                 } else {
                     // Something happened.
-                    log.error(error);
+                    log.error(exception);
+                    return 'Network exception';
                 }
-                return null;
             });
+    },
+
+    interrupt: function(reason) {
+        source.cancel(reason);
     },
 
 }
