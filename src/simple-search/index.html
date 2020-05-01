@@ -33,7 +33,7 @@
     <div id="app">
       <div class="app-wrapper">
         <h1>Search the EBSCO Discovery Service</h1>
-        <input v-model="searchString" v-on:keyup.enter="run(currentPage)"
+        <input v-model="currentSearch" v-on:keyup.enter="run()"
                class="search-input" type="text" placeholder="Search string"/>
 
         <div class="options">
@@ -151,7 +151,8 @@
      new Vue({
        el: '#app',
        data: {
-         searchString: '',
+         currentSearch: '',
+         previousSearch: '',
          highlightTerms: true,
          autocorrect: true,
          searchStatus: '',
@@ -226,7 +227,7 @@
                           'Content-Type': 'application/json' };
            let data = {
              "SearchCriteria": {
-               "Queries": [ { "Term": this.searchString } ],
+               "Queries": [ { "Term": this.currentSearch } ],
                "SearchMode": "all",
                "IncludeFacets": "y",
                "Sort": this.sortMode,
@@ -384,6 +385,7 @@
            log.debug('resetting search state');
            this.records = [];
            this.numResults = '';
+           this.previousSearch = '';
          },
 
 
@@ -393,19 +395,19 @@
          run(nextPage = 1) {
            // Sanity checks.
 
-           if (nextPage === 1 && this.numResults) {
+           if (nextPage === 1 && (this.currentSearch != this.previousSearch)) {
              // Doing a new search but there are results from a previous one.
-             log.debug('clearing state and starting a search')
+             log.debug('clearing state and starting a new search')
              this.resetSearch();
              this.currentPage = 1;
            } else if (nextPage > 1) {
              // Doing next page of an existing search.
-             log.debug('page =', nextPage);
+             log.debug('nextPage =', nextPage);
              this.currentPage = nextPage;
              this.resetSearch();
            };
 
-           if (! this.searchString) {
+           if (! this.currentSearch) {
              log.debug('empty search string');
              this.error = "Cannot search for an empty string";
              this.resetSearch();
@@ -413,7 +415,7 @@
            }
 
            // Let's do this thing.
-           this.searchStatus = 'Searching for "' + this.searchString + '" ...';
+           this.searchStatus = 'Searching for "' + this.currentSearch + '" ...';
            this.isSearching = true;
 
            let authTokenPromise = this.authToken();
@@ -433,13 +435,14 @@
                if (! results) {
                  log.debug('no results received');
                  this.isSearching = false;
-                 this.searchStatus = 'Searching for "' + this.searchString + '" ... Error.';
+                 this.searchStatus = 'Searching for "' + this.currentSearch + '" ... Error.';
                  return;
                };
 
                log.debug('results received');
+               this.previousSearch = this.currentSearch;
                this.isSearching = false;
-               this.searchStatus = 'Searching for "' + this.searchString + '" ... Done.';
+               this.searchStatus = 'Searching for "' + this.currentSearch + '" ... Done.';
                console.log(results);
                stats = results.Statistics;
                this.numResults = 'Total number of hits: '
