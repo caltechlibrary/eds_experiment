@@ -63,9 +63,9 @@
         <button v-on:click="run(currentPage)" 
                 class="search-button" id="search-button">Search</button>
 
-        <modal v-if="errorEmptyString" v-on:close="errorEmptyString = false">
+        <modal v-if="error" v-on:close="error = false">
           <span slot="header">Error</span>
-          <span slot="body">Cannot search for an empty string.</span>
+          <span slot="body">{{ error }}.</span>
         </modal>
 
         <div class="output">
@@ -151,7 +151,6 @@
      new Vue({
        el: '#app',
        data: {
-         errorEmptyString: false,
          searchString: '',
          highlightTerms: true,
          autocorrect: true,
@@ -164,6 +163,7 @@
          perPage: 20,
          perPageOptions: ['5', '10', '20', '50', '100'],
          currentPage: 1,
+         error: false,
        },
        methods: {
 
@@ -171,21 +171,43 @@
          // ...................................................................
 
          authToken() {
+           let url  = null;
+           let data = {};
+
            // If config has a user & password, use UID auth, else we use IP.
            if (config.user && config.password) {
              log.debug('getting authentication token using UID auth method');
-             let data = JSON.stringify({ "UserId": config.user,
+             url = config.UIDauthURL
+             data = JSON.stringify({ "UserId": config.user,
                                          "Password": config.password });
-             return net.post(config.UIDauthURL, config.corsproxy, data)
-                       .then(data => data.AuthToken);
            } else {
              log.debug('getting authentication token using IP auth method');
-             return net.post(config.IPauthURL, config.corsproxy)
-                       .then(data => data.AuthToken);
+             url = config.IPauthURL;
            }
+           return net.post(url, config.corsproxy, data)
+                     .then(data => {
+                       // We're expecting an object.  If we get a string, 
+                       // it's an error message from our net.js.
+                       if (obj.isString(data)) {
+                         this.error = data;
+                         return null;
+                       } else {
+                         return data.AuthToken;
+                       }
+                     })
+                     .catch(exception => {
+                       if (obj.isString(exception))
+                         this.error = exception;
+                       return null;
+                     });
          },
 
          sessionToken(a_token) {
+           if (! a_token) {
+             log.debug("no authentication token -- can't get session token");
+             return null;
+           };
+
            log.debug('getting session token');
            return net.post(config.sessionURL, config.corsproxy,
                            {'Profile': 'edsapi'},
@@ -194,6 +216,11 @@
          },
 
          searchResults(a_token, s_token) {
+           if (! a_token || ! s_token) {
+             log.debug("do not have all necessary tokens -- aborting search");
+             return null;
+           };
+
            let headers = {'x-authenticationToken': a_token,
                           'x-sessionToken': s_token,
                           'Content-Type': 'application/json' };
@@ -362,7 +389,7 @@
 
            if (! this.searchString) {
              log.debug('empty search string');
-             this.errorEmptyString = true;
+             this.error = "Cannot search for an empty string";
              return false;
            }
 
@@ -393,6 +420,13 @@
 
            let items = searchPromise.then(
              (results) => {
+               if (! results) {
+                 log.debug('no results received');
+                 this.isSearching = false;
+                 this.searchStatus = 'Searching for "' + this.searchString + '" ... Error.';
+                 return;
+               };
+
                log.debug('results received');
                this.isSearching = false;
                this.searchStatus = 'Searching for "' + this.searchString + '" ... Done.';
