@@ -15,6 +15,10 @@ var obj = {
             return false;
         return true;
     },
+
+    isString: function isString(thing) {
+        return (typeof thing === "string" || thing instanceof String);
+    },
 }
 
 module.exports = obj;
