@@ -28,7 +28,7 @@ const connectionTimeout = 5 * 1000;       // Wait for 5 sec.
 // ............................................................................
 
 const CancelToken = axios.CancelToken;
-const source = CancelToken.source();
+let cancelSource;
 
 var net = {
     post: function(url, proxy, data = {}, extra_headers = {}) {
@@ -38,48 +38,54 @@ var net = {
                        url: proxy.url + url,
                        headers: headers,
                        timeout: responseTimeout,
-                       cancelToken: source.token };
+                       cancelToken: new CancelToken(function executor(c) {
+                           cancelSource = c; }),
+                     };
         if (! obj.isEmpty(data))
             params['data'] = data;
+
+        let timeout = setTimeout(() => {
+            cancelSource.cancel('Connection attempt timed out');
+        }, connectionTimeout);
 
         log.debug('>>>> post to', url);
         log.debug('headers: ', headers);
         log.debug('data: ', data);
 
-        setTimeout(() => {
-            source.cancel('Connection attempt timed out');
-        }, connectionTimeout);
-
         return axios(params)
             .then(response => {
                 log.debug('<<<< post response');
                 log.debug(response);
+                clearTimeout(timeout);
                 return response.data;
             })
             .catch(exception => {
+                let returnValue;
                 if (axios.isCancel(exception)) {
                     log.warn('connection request cancelled:', exception.message);
-                    return exception.message;
+                    returnValue = exception.message;
                 } else if (exception.request) {
                     // The request was made but no response was received.
                     log.error('problem with post to', url);
                     log.error(exception.request);
-                    return exception.request;
+                    returnValue =  exception.request;
                 } else if (exception.response) {
                     // Request was made and server responded.
                     log.error('problem with response to', url);
                     log.error(exception.response);
-                    return exception.response;
+                    returnValue =  exception.response;
                 } else {
                     // Something happened.
                     log.error(exception);
-                    return 'Network exception';
+                    returnValue =  'Network exception';
                 }
+                clearTimeout(timeout);
+                return returnValue;
             });
     },
 
     interrupt: function(reason) {
-        source.cancel(reason);
+        cancelSource.cancel(reason);
     },
 
 }
