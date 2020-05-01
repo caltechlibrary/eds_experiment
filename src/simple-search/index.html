@@ -97,7 +97,7 @@
             </ol>
           </div>
           <div class="paginator">
-            <button v-if="currentPage > 1" v-on:click="run(currentPage - 1)"
+            <button v-if="currentPage > 1 && ! isSearching" v-on:click="run(currentPage - 1)"
                     class="paging-button" id="paging-button">&larr; Previous page</button>
             <button v-if="records.length > 0" v-on:click="run(currentPage + 1)"
                     class="paging-button" id="paging-button">Next page &rarr;</button>
