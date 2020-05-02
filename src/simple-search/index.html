@@ -33,7 +33,7 @@
     <div id="app">
       <div class="app-wrapper">
         <h1>Search the EBSCO Discovery Service</h1>
-        <input v-model="currentSearch" v-on:keyup.enter="run()"
+        <input v-model="search.current" v-on:keyup.enter="run()"
                class="search-input" type="text" placeholder="Search string"/>
 
         <div class="options">
@@ -60,8 +60,10 @@
           </div>
         </div>
 
-        <button v-on:click="run(currentPage)" 
-                class="search-button" id="search-button">Search</button>
+        <button v-on:click="search.inProgress ? cancel() : run(currentPage)" 
+                class="search-button" id="search-button">
+          {{ search.inProgress ? "Cancel" : "Search" }}
+        </button>
 
         <modal v-if="error" v-on:close="error = false">
           <span slot="header">Error</span>
@@ -70,7 +72,7 @@
 
         <div class="output">
           <span class="search-status">
-            {{ searchStatus }}<circ v-if="isSearching"></circ>
+            {{ search.status }}<circ v-if="search.inProgress"></circ>
           </span>
           <span class="num-results">{{ numResults }}</span>
           <div class="results-table">
@@ -97,7 +99,7 @@
             </ol>
           </div>
           <div class="paginator">
-            <button v-if="currentPage > 1 && ! isSearching" v-on:click="run(currentPage - 1)"
+            <button v-if="currentPage > 1 && ! search.inProgress" v-on:click="run(currentPage - 1)"
                     class="paging-button" id="paging-button">&larr; Previous page</button>
             <button v-if="records.length > 0" v-on:click="run(currentPage + 1)"
                     class="paging-button" id="paging-button">Next page &rarr;</button>
@@ -151,14 +153,17 @@
      new Vue({
        el: '#app',
        data: {
-         currentSearch: '',
-         previousSearch: '',
+         search: {
+           current: '',
+           previous: '',
+           inProgress: false,
+           status: '',
+           cancelled: false,
+         },
          highlightTerms: true,
          autocorrect: true,
-         searchStatus: '',
          numResults: '',
          records: [],
-         isSearching: false,
          sortOptions: ['relevance', 'date'],
          sortMode: 'relevance',
          perPage: 20,
@@ -174,6 +179,11 @@
          authToken() {
            let url  = null;
            let data = {};
+
+           if (this.search.cancelled) {
+             log.debug('search cancelled -- stopping authToken()');
+             return null;
+           };
 
            // If config has a user & password, use UID auth, else we use IP.
            if (config.user && config.password) {
@@ -209,6 +219,11 @@
              return null;
            };
 
+           if (this.search.cancelled) {
+             log.debug('search cancelled -- stopping sessionToken()');
+             return null;
+           };
+
            log.debug('getting session token');
            return net.post(config.sessionURL, config.corsproxy,
                            {'Profile': 'edsapi'},
@@ -222,12 +237,17 @@
              return null;
            };
 
+           if (this.search.cancelled) {
+             log.debug('search cancelled -- stopping searchResults()');
+             return null;
+           };
+
            let headers = {'x-authenticationToken': a_token,
                           'x-sessionToken': s_token,
                           'Content-Type': 'application/json' };
            let data = {
              "SearchCriteria": {
-               "Queries": [ { "Term": this.currentSearch } ],
+               "Queries": [ { "Term": this.search.current } ],
                "SearchMode": "all",
                "IncludeFacets": "y",
                "Sort": this.sortMode,
@@ -385,7 +405,14 @@
            log.debug('resetting search state');
            this.records = [];
            this.numResults = '';
-           this.previousSearch = '';
+           this.search.previous = '';
+           this.search.cancelled = false;
+         },
+
+         cancel() {
+           log.debug('user cancelled search');
+           this.search.cancelled = true;
+           this.search.status = 'Cancelling ...'
          },
 
 
@@ -395,7 +422,7 @@
          run(nextPage = 1) {
            // Sanity checks.
 
-           if (nextPage === 1 && (this.currentSearch != this.previousSearch)) {
+           if (nextPage === 1 && (this.search.current != this.search.previous)) {
              // Doing a new search but there are results from a previous one.
              log.debug('clearing state and starting a new search')
              this.resetSearch();
@@ -407,7 +434,7 @@
              this.resetSearch();
            };
 
-           if (! this.currentSearch) {
+           if (! this.search.current) {
              log.debug('empty search string');
              this.error = "Cannot search for an empty string";
              this.resetSearch();
@@ -415,8 +442,9 @@
            }
 
            // Let's do this thing.
-           this.searchStatus = 'Searching for "' + this.currentSearch + '" ...';
-           this.isSearching = true;
+           this.search.status = 'Searching for "' + this.search.current + '" ...';
+           this.search.inProgress = true;
+           document.getElementById("search-button").focus();
 
            let authTokenPromise = this.authToken();
 
@@ -432,17 +460,24 @@
 
            let items = searchPromise.then(
              (results) => {
+               if (this.search.cancelled) {
+                 log.debug('search cancelled -- stopping run()');
+                 this.search.status = 'Search cancelled.';
+                 this.search.inProgress = false;
+                 return;
+               }
+
                if (! results) {
                  log.debug('no results received');
-                 this.isSearching = false;
-                 this.searchStatus = 'Searching for "' + this.currentSearch + '" ... Error.';
+                 this.search.inProgress = false;
+                 this.search.status = 'Searching for "' + this.search.current + '" ... Error.';
                  return;
                };
 
                log.debug('results received');
-               this.previousSearch = this.currentSearch;
-               this.isSearching = false;
-               this.searchStatus = 'Searching for "' + this.currentSearch + '" ... Done.';
+               this.search.previous = this.search.current;
+               this.search.inProgress = false;
+               this.search.status = 'Searching for "' + this.search.current + '" ... Done.';
                console.log(results);
                stats = results.Statistics;
                this.numResults = 'Total number of hits: '
