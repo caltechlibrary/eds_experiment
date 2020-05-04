@@ -33,79 +33,87 @@
     <div id="app">
       <div class="app-wrapper">
         <h1>Search the EBSCO Discovery Service</h1>
-        <input v-model="search.current" v-on:keyup.enter="run()"
-               class="search-input" type="text" placeholder="Search string"/>
 
-        <div class="options">
-          <span id="select-sort">Sort results:
-            <v-select v-model="sortMode" :options="sortOptions" class="select-sort"></v-select>
-          </span>
-
-          <div class="labeled-checkbox">
-            <input v-model="highlightTerms" type="checkbox" id="optionHighlight"/>
-            <label for="optionHighlight" class="search-option">
-              Highlight search terms in results?
-            </label>
-          </div>
-
-          <span id="results-per-page">Results per page:
-            <v-select v-model="perPage" :options="perPageOptions" class="select-sort"></v-select>
-          </span>
-
-          <div class="labeled-checkbox">
-            <input v-model="autocorrect" type="checkbox" id="optionAutocorrect"/>
-            <label for="optionAutocorrect" class="search-option">
-              Let EBSCO autocorrect spelling?
-            </label>
-          </div>
+        <div class="description">
+          <p>Highly volatile experimental software interface for exploration.</p>
         </div>
 
-        <button v-on:click="search.inProgress ? cancel() : run(currentPage)" 
-                class="search-button" id="search-button">
-          {{ search.inProgress ? "Cancel" : "Search" }}
-        </button>
+        <div class="content">
+          <input v-model="search.current" v-on:keyup.enter="run()"
+                 class="search-input" type="text" placeholder="Search string"/>
 
-        <modal v-if="error" v-on:close="error = false">
-          <span slot="header">Error</span>
-          <span slot="body">{{ error }}.</span>
-        </modal>
+          <div class="options">
+            <span id="select-sort">Sort results:
+              <v-select v-model="sortMode" :options="sortOptions" class="select-sort"></v-select>
+            </span>
 
-        <div class="output">
-          <span class="search-status">
-            {{ search.status }}<circ v-if="search.inProgress"></circ>
-          </span>
-          <span class="num-results">{{ numResults }}</span>
-          <div class="results-table">
-            <ol class="results-list">
-              <li v-for="record in records" v-bind:value="pubResultId(record)">
-                <div class="pub-record">
-                  <div class="pub-title">
-                    <span v-html="pubTitle(record)"></span>
-                  </div>
-                  <div class="pub-authors">
-                    <span v-html="pubAuthors(record)"></span>
-                  </div>
-                  <div class="pub-source-type">
-                    <span v-html="pubType(record)"></span>
-                  </div>
-                  <div class="pub-source">
-                    <span v-html="pubSource(record)"></span>
-                  </div>
-                  <div class="pub-doi">
-                    <a v-bind:href="pubURL(record)" v-html="pubDOI(record)"></a>
-                  </div>
-                </div>
-              </li>
-            </ol>
+            <div class="labeled-checkbox">
+              <input v-model="highlightTerms" type="checkbox" id="optionHighlight"/>
+              <label for="optionHighlight" class="search-option">
+                Highlight search terms in results?
+              </label>
+            </div>
+
+            <span id="results-per-page">Results per page:
+              <v-select v-model="perPage" :options="perPageOptions" class="select-sort"></v-select>
+            </span>
+
+            <div class="labeled-checkbox">
+              <input v-model="autocorrect" type="checkbox" id="optionAutocorrect"/>
+              <label for="optionAutocorrect" class="search-option">
+                Let EBSCO autocorrect spelling?
+              </label>
+            </div>
           </div>
-          <div class="paginator">
-            <button v-if="currentPage > 1 && ! search.inProgress" v-on:click="run(currentPage - 1)"
-                    class="paging-button" id="paging-button">&larr; Previous page</button>
-            <button v-if="records.length > 0" v-on:click="run(currentPage + 1)"
-                    class="paging-button" id="paging-button">Next page &rarr;</button>
+
+          <button v-on:click="search.inProgress ? cancel() : run(currentPage)" 
+                  class="search-button" id="search-button">
+            {{ search.inProgress ? "Cancel" : "Search" }}
+          </button>
+
+          <modal v-if="error" v-on:close="error = false">
+            <span slot="header">Error</span>
+            <span slot="body">{{ error }}.</span>
+          </modal>
+
+          <div class="output">
+            <span class="search-status">
+              {{ search.status }}<circ v-if="search.inProgress"></circ>
+            </span>
+            <span class="num-results">{{ numResults }}</span>
+            <div class="results-table">
+              <ol class="results-list">
+                <li v-for="record in records" v-bind:value="pubResultId(record)">
+                  <div class="pub-record">
+                    <div class="pub-title">
+                      <span v-html="pubTitle(record)"></span>
+                    </div>
+                    <div class="pub-authors">
+                      <span v-html="pubAuthors(record)"></span>
+                    </div>
+                    <div class="pub-source-type">
+                      <span v-html="pubType(record)"></span>
+                    </div>
+                    <div class="pub-source">
+                      <span v-html="pubSource(record)"></span>
+                    </div>
+                    <div class="pub-doi">
+                      <a v-bind:href="pubURL(record)" v-html="pubDOI(record)"></a>
+                    </div>
+                  </div>
+                </li>
+              </ol>
+            </div>
+            <div class="paginator">
+              <button v-if="currentPage > 1 && ! search.inProgress" v-on:click="run(currentPage - 1)"
+                      class="paging-button" id="paging-button">&larr; Previous page</button>
+              <button v-if="records.length > 0" v-on:click="run(currentPage + 1)"
+                      class="paging-button" id="paging-button">Next page &rarr;</button>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
     <script>
 
