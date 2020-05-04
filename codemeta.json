@@ -6,7 +6,7 @@
   "codeRepository": "https://github.com/caltechlibrary/eds_experiments",
   "issueTracker": "https://github.com/caltechlibrary/eds_experiments/issues",
   "license": "https://github.com/caltechlibrary/eds_experiments/blob/master/LICENSE",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "author": [
     {
       "@type": "Person",
