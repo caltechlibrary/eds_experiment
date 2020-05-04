@@ -1,0 +1,28 @@
+#!/bin/bash
+## ============================================================================
+## File name   : post-commit
+## Description : git post-commit hook to save a version number on every commit
+## Author(s)   : Michael Hucka <mhucka@caltech.edu>
+## Organization: California Institute of Technology
+## Date created: 2020-05-04
+##
+## This needs to be installed in your local copy of the repository.  One way
+## to do that is to configure git to look for hooks in a local directory:
+##
+##   git config core.hooksPath .githooks
+##
+## ============================================================================
+
+root=$(git rev-parse --show-toplevel)
+count=$(git rev-list HEAD --count)
+description=$(git describe --always --tags --dirty="-local")
+
+cat <<EOF > $root/simple-search/version.js
+const version = {
+    count: "$count",
+    description: "$description",
+    string: "$count ($description)",
+}
+
+module.exports = version;
+EOF
