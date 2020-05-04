@@ -17,7 +17,9 @@ root=$(git rev-parse --show-toplevel)
 count=$(git rev-list HEAD --count)
 description=$(git describe --always --tags --dirty="-local")
 
-cat <<EOF > $root/simple-search/version.js
+versionfile=$root/simple-search/version.js
+
+cat <<EOF > $versionfile
 const version = {
     count: "$count",
     description: "$description",
