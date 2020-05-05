@@ -1,13 +1,14 @@
 #!/bin/bash
 ## ============================================================================
-## File name   : post-commit
-## Description : git post-commit hook to save a version number on every commit
+## File name   : pre-commit
+## Description : git pre-commit hook to save a version number on every commit
 ## Author(s)   : Michael Hucka <mhucka@caltech.edu>
 ## Organization: California Institute of Technology
 ## Date created: 2020-05-04
 ##
-## This needs to be installed in your local copy of the repository.  One way
-## to do that is to configure git to look for hooks in a local directory:
+## This hook and the companion post-commit hook need to be installed in your
+## local copy of the repository.  One way to do that is to configure git to
+## look for hooks in a local directory:
 ##
 ##   git config core.hooksPath .githooks
 ##
