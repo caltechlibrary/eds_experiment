@@ -1,0 +1,7 @@
+#!/bin/bash
+
+root=$(git rev-parse --show-toplevel)
+versionfile=$root/simple-search/version.js
+
+
+git commit --amend -C HEAD --no-verify $versionfile
