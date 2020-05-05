@@ -3,5 +3,7 @@
 root=$(git rev-parse --show-toplevel)
 versionfile=$root/simple-search/version.js
 
-
-git commit --amend -C HEAD --no-verify $versionfile
+if [[ -e $versionfile.needcommit ]]; then
+    rm -f $versionfile.needcommit
+    git commit --amend -C HEAD --no-verify --no-post-rewrite --allow-empty-message $versionfile
+fi

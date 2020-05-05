@@ -30,3 +30,4 @@ module.exports = version;
 EOF
 
 git add $versionfile
+touch $versionfile.needcommit
