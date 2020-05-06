@@ -1,7 +1,7 @@
 const version = {
-    count: "104",
-    description: "be91b71-local",
-    string: "104 (be91b71-local)",
+    count: "105",
+    description: "e7c5177-local",
+    string: "105 (e7c5177-local)",
 }
 
 module.exports = version;

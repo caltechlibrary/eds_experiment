@@ -30,6 +30,10 @@ h1 {
   text-align: center;
 }
 
+.version-number {
+  font-style: italic;
+}
+
 .app-wrapper {
   margin-top: 2em;
   margin-left: auto;
