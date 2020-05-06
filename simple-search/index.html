@@ -276,7 +276,7 @@
              "Actions": null
            };
            log.debug('sending search query');
-           console.log(this.perPage);
+           log.debug(this.perPage);
            return net.post(config.searchURL, config.corsproxy, data, headers)
                      .then(data => data.SearchResult);
          },
@@ -468,11 +468,11 @@
                this.search.previous = this.search.current;
                this.search.inProgress = false;
                this.search.status = 'Searching for "' + this.search.current + '" ... Done.';
-               console.log(results);
+               log.debug(results);
                stats = results.Statistics;
                this.search.numResults = 'Total number of hits: '
                                       + Humanize.intComma(stats.TotalHits) + '.';
-               console.log(this.numResults);
+               log.debug(this.numResults);
                if (results.Data.hasOwnProperty('Records')) {
                  this.records = results.Data.Records;                 
                };
