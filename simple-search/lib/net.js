@@ -27,30 +27,47 @@ const connectionTimeout = 10 * 1000;      // Wait for 10 sec.
 // Main code.
 // ............................................................................
 
-const CancelToken = axios.CancelToken;
+// IMHO, the cancellation scheme in Axios is difficult to understand, so here
+// is a verbose explanation of what's happening below.  A key point to
+// understand is that you must create a separate CancelToken object for each
+// axios network call, and not simply create one token and keep reusing it.
+// Otherwise, all calls will end up sharing the same cancellation token --
+// which means the first cancellation will pre-cancel all subsequent network
+// calls :-(.  A second point to keep in mind is that in order to be able to
+// manipulate the cancellation token from outside of the axios call (for
+// example, to perform a cancellation via a timeout), we have to store the
+// token in an external (to the axios call) variable.  A final and subtle
+// point (don't you just love all this?) is that the CancelToken.source()
+// method returns an object that has two properties: "token" and "cancel".
+// The token is what is passed to the axios network call, and "cancel" is
+// actually a function that takes one argument, a text string.  You call this
+// function to perform the cancellation.
+//
+// So, below, the variable "cancelSource" is used to store a fresh
+// CancelToken.source() object every time our post(...) function is called.
+// The token from this object is passed to the axios network call, and then
+// in our interrupt(...) function later below, that's when we call the
+// cancel(...) method with a message about the reason for the cancellation.
+
 let cancelSource;
 
 var net = {
     post: function(url, proxy, data = {}, extra_headers = {}) {
-        let cancelHandler = new CancelToken(function executor(c) {
-            cancelSource = c;
-        });
-
+        cancelSource = new axios.CancelToken.source();
         let headers = { ...{'Content-Type': 'application/json' },
                         ...extra_headers, ...proxy.headers };
         let params = { method: 'post',
                        url: proxy.url + url,
                        headers: headers,
                        timeout: responseTimeout,
-                       cancelToken: cancelHandler,
+                       cancelToken: cancelSource.token
                      };
         if (! obj.isEmpty(data))
             params['data'] = data;
 
         let timeout = setTimeout(() => {
             log.debug('connectionTimeout reached');
-            if (cancelSource.hasOwnProperty('cancel'))
-                cancelSource.cancel('Connection attempt timed out');
+            this.interrupt('Connection attempt timed out');
         }, connectionTimeout);
 
         log.debug('>>>> post to', url);
@@ -90,6 +107,7 @@ var net = {
     },
 
     interrupt: function(reason) {
+        log.debug('issuing interrupt:', reason);
         cancelSource.cancel(reason);
     },
 
