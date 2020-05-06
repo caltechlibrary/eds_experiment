@@ -21,7 +21,7 @@ try {
 // ............................................................................
 
 const responseTimeout   = 5 * 1000;       // Wait for 5 sec.
-const connectionTimeout = 5 * 1000;       // Wait for 5 sec.
+const connectionTimeout = 10 * 1000;      // Wait for 10 sec.
 
 
 // Main code.
@@ -32,20 +32,25 @@ let cancelSource;
 
 var net = {
     post: function(url, proxy, data = {}, extra_headers = {}) {
+        let cancelHandler = new CancelToken(function executor(c) {
+            cancelSource = c;
+        });
+
         let headers = { ...{'Content-Type': 'application/json' },
                         ...extra_headers, ...proxy.headers };
         let params = { method: 'post',
                        url: proxy.url + url,
                        headers: headers,
                        timeout: responseTimeout,
-                       cancelToken: new CancelToken(function executor(c) {
-                           cancelSource = c; }),
+                       cancelToken: cancelHandler,
                      };
         if (! obj.isEmpty(data))
             params['data'] = data;
 
         let timeout = setTimeout(() => {
-            cancelSource.cancel('Connection attempt timed out');
+            log.debug('connectionTimeout reached');
+            if (cancelSource.hasOwnProperty('cancel'))
+                cancelSource.cancel('Connection attempt timed out');
         }, connectionTimeout);
 
         log.debug('>>>> post to', url);
