@@ -472,8 +472,10 @@
                stats = results.Statistics;
                this.search.numResults = 'Total number of hits: '
                                       + Humanize.intComma(stats.TotalHits) + '.';
-               this.records = results.Data.Records;
                console.log(this.numResults);
+               if (results.Data.hasOwnProperty('Records')) {
+                 this.records = results.Data.Records;                 
+               };
              });
          },
        }
