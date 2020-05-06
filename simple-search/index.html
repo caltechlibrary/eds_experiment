@@ -25,6 +25,7 @@
     <script type="text/javascript" src="lib/log.js"></script>
     <script type="text/javascript" src="lib/net.js"></script>
     <script type="text/javascript" src="lib/obj.js"></script>
+    <script type="text/javascript" src="lib/eds.js"></script>
     <script type="text/javascript" src="lib/string.js"></script>
 
     <link rel="stylesheet" href="app.css"></script>
@@ -82,7 +83,7 @@
             <span class="search-status">
               {{ search.status }}<circ v-if="search.inProgress"></circ>
             </span>
-            <span class="num-results">{{ numResults }}</span>
+            <span class="num-results">{{ search.numResults }}</span>
             <div class="results-table">
               <ol class="results-list">
                 <li v-for="record in records" v-bind:value="pubResultId(record)">
@@ -168,11 +169,11 @@
            previous: '',
            inProgress: false,
            status: '',
+           numResults: '',
            cancelled: false,
          },
          highlightTerms: true,
          autocorrect: true,
-         numResults: '',
          records: [],
          sortOptions: ['relevance', 'date'],
          sortMode: 'relevance',
@@ -201,7 +202,7 @@
              log.debug('getting authentication token using UID auth method');
              url = config.UIDauthURL
              data = JSON.stringify({ "UserId": config.user,
-                                         "Password": config.password });
+                                     "Password": config.password });
            } else {
              log.debug('getting authentication token using IP auth method');
              url = config.IPauthURL;
@@ -281,52 +282,34 @@
          },
 
          pubTitle(record) {
-           if (record.hasOwnProperty('Items')) {
-             for (var item of record.Items) {
-               if (item.Label === 'Title') {
-                 let htmlified = he.decode(item.Data);
-                 htmlified = htmlified.replaceAll(/<highlight>/i, '<span class="highlight">');
-                 htmlified = htmlified.replaceAll(/<\/highlight>/i, '</span>');
-                 return htmlified;
-               };
-             };
-             this.warnMissing(record, 'Title element in Items array');
-             return 'missing';
-           } else {
-             log.warn('record has no Items array');
-             return 'missing';
-           }
+           for (var item of record.Items) {
+             if (item.Label === 'Title')
+               return eds.filtered(item.Data);
+           };
+           this.warnMissing(record, 'Title element in Items array');
+           return '(missing title)';
          },
 
          pubAuthors(record) {
            // Not everything has an authors field.
-           if (record.hasOwnProperty('Items')) {
-             for (var item of record.Items) {
-               if (item.Label === 'Authors') {
-                 let htmlified = he.decode(item.Data);
-                 htmlified = htmlified.replaceAll(/<searchlink.*?>(.+?)<\/searchlink>/i,
-                                                  '<span class="author">$1</span>');
-                 htmlified = htmlified.replaceAll(/<relatesto.*?>(.+?)<\/relatesto>/i, '');
-                 htmlified = htmlified.replaceAll(/<superscript>(.+?)<\/superscript>/i, '');
-                 htmlified = htmlified.replaceAll(/<i>(.+?)<\/i>/i, '');
-                 htmlified = htmlified.replace(/ \(AUTHOR\)/gi, ' ');
-                 htmlified = htmlified.replace(/, Editor/gi, ' ');
-                 htmlified = htmlified.replace(/, Series Editor/gi, ' ');
-                 htmlified = htmlified.replace(/<br ?\/?>/gi, ' ');
-                 return htmlified;
-               }
-             };
-             this.warnMissing(record, 'Authors');
-             return 'missing';
-           } else {
-             log.warn('Record has no Items array');
-             return 'missing';
-           }
+           for (var item of record.Items) {
+             if (item.Label === 'Authors') {
+               let htmlified = eds.filtered(item.Data);
+               htmlified = htmlified.replaceAll(/<searchlink.*?>(.+?)<\/searchlink>/i,
+                                                '<span class="author">$1</span>');
+               htmlified = htmlified.replaceAll(/<i>(.+?)<\/i>/i, '');
+               htmlified = htmlified.replace(/ \(AUTHOR\)/gi, ' ');
+               htmlified = htmlified.replace(/, Editor/gi, ' ');
+               htmlified = htmlified.replace(/, Series Editor/gi, ' ');
+               return htmlified;
+             }
+           };
+           this.warnMissing(record, 'Authors');
+           return '(missing authors)';
          },
 
          pubSource(record) {
            // Not everything has an authors field.
-           if (record.hasOwnProperty('Items')) {
              for (var item of record.Items) {
                if (item.Label === 'Source') {
                  let htmlified = he.decode(item.Data);
@@ -334,11 +317,7 @@
                }
              };
              this.warnMissing(record, 'Source');
-             return 'missing';
-           } else {
-             log.warn('Record has no Items array');
-             return 'missing';
-           }
+             return '(missing source)';
          },
 
          pubType(record) {
@@ -347,7 +326,7 @@
              return record.Header.PubType;
            } else {
              this.warnMissing(record, 'Header');
-             return 'missing';
+             return '(missing type)';
            }
          },
 
@@ -357,7 +336,7 @@
              return record.PLink;
            } else {
              this.warnMissing(record, 'PLink');
-             return 'missing';
+             return '(missing URL)';
            }
          },
 
@@ -367,7 +346,7 @@
              return record.ResultId;
            } else {
              this.warnMissing(record, 'ResultId');
-             return 'missing';
+             return '(missing result id)';
            }
          },
 
@@ -395,7 +374,7 @@
                  return item.Value;
              }
            };
-           return 'missing';
+           return '(missing DOI)';
          },
 
          setSortMode(mode) {
@@ -415,7 +394,7 @@
          resetSearch() {
            log.debug('resetting search state');
            this.records = [];
-           this.numResults = '';
+           this.search.numResults = '';
            this.search.previous = '';
            this.search.cancelled = false;
          },
@@ -491,8 +470,8 @@
                this.search.status = 'Searching for "' + this.search.current + '" ... Done.';
                console.log(results);
                stats = results.Statistics;
-               this.numResults = 'Total number of hits: '
-                               + Humanize.intComma(stats.TotalHits) + '.';
+               this.search.numResults = 'Total number of hits: '
+                                      + Humanize.intComma(stats.TotalHits) + '.';
                this.records = results.Data.Records;
                console.log(this.numResults);
              });
