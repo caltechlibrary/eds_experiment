@@ -84,6 +84,21 @@
               {{ search.status }}<circ v-if="search.inProgress"></circ>
             </span>
             <span class="num-results">{{ search.numResults }}</span>
+            <div class="results-autocorrections">
+              <div v-if="search.autocorrected.replacement" class="autocorrect-replacements">
+                Automatically replaced "<span v-for="word in search.autocorrected.original"
+                                              v-bind:value="search.autocorrected.original"
+                                              class="autocorrect-original-word">{{ word }}</span>"
+                with "<span v-for="word in search.autocorrected.replacement"
+                            v-bind:value="search.autocorrected.replacement"
+                            class="autocorrect-replaced-word">{{ word }}</span>".
+              </div>
+              <div v-if="search.autocorrected.didyoumean" class="autocorrect-did-you-mean">
+                Did you mean "<span v-for="word in search.autocorrected.didyoumean"
+                                    v-bind:value="search.autocorrected.didyoumean"
+                                    class="autocorrect-suggested-word">{{ word }}</span>"?
+              </div>
+            </div>
             <div class="results-table">
               <ol class="results-list">
                 <li v-for="record in records" v-bind:value="pubResultId(record)">
@@ -171,6 +186,11 @@
            status: '',
            numResults: '',
            cancelled: false,
+           autocorrected: {
+             original: '',
+             replacement: '',
+             didyoumean: '',
+           },
          },
          highlightTerms: true,
          autocorrect: true,
@@ -397,6 +417,9 @@
            this.search.numResults = '';
            this.search.previous = '';
            this.search.cancelled = false;
+           this.search.autocorrected.original = '';
+           this.search.autocorrected.replacement = '';
+           this.search.autocorrected.didyoumean = '';
          },
 
          cancel() {
@@ -473,6 +496,22 @@
                this.search.numResults = 'Total number of hits: '
                                       + Humanize.intComma(stats.TotalHits) + '.';
                log.debug(this.numResults);
+
+               if (results.hasOwnProperty('AutoSuggestedTerms')) {
+                 // Server detected spelling errors or variants. Did it replace
+                 // the original search?
+                 if (results.hasOwnProperty('AutoCorrectedTerms')) {
+                   // Yes.
+                   log.debug('got autocorrection suggestions');
+                   this.search.autocorrected.original = results.AutoSuggestedTerms;
+                   this.search.autocorrected.replacement = results.AutoCorrectedTerms;
+                 } else {
+                   // No.
+                   log.debug('got did you mean');
+                   this.search.autocorrected.didyoumean = results.AutoSuggestedTerms;
+                 };
+               };
+
                if (results.Data.hasOwnProperty('Records')) {
                  this.records = results.Data.Records;                 
                };

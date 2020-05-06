@@ -104,6 +104,24 @@ h1 {
   margin: 1em auto;
 }
 
+.results-autocorrections {
+  margin-bottom: 2em;
+}
+
+.autocorrect-suggested-word {
+  font-weight: bold;
+}
+
+.autocorrect-original-word {
+  background-color: #f5d0e5;
+  border-radius: 4px;
+}
+
+.autocorrect-replaced-word {
+  background-color: #d0e990;
+  border-radius: 4px;
+}
+
 .results-list {
   padding-left: 1.2em;
   padding-right: 1.2em;
