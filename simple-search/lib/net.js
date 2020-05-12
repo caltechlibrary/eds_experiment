@@ -113,7 +113,9 @@ var net = {
 
 }
 
+module.exports = net;
+
 // The end.
 // ............................................................................
 
-module.exports = net;
+log.debug('loaded net.js');

@@ -24,3 +24,9 @@ prefix.reg(log);
 prefix.apply(log);
 
 module.exports = log;
+
+
+// The end.
+// ............................................................................
+
+log.debug('loaded log.js');
