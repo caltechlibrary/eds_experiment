@@ -25,8 +25,8 @@
     <script type="text/javascript" src="lib/log.js"></script>
     <script type="text/javascript" src="lib/net.js"></script>
     <script type="text/javascript" src="lib/obj.js"></script>
-    <script type="text/javascript" src="lib/eds.js"></script>
     <script type="text/javascript" src="lib/string.js"></script>
+    <script type="text/javascript" src="lib/eds.js"></script>
 
     <link rel="stylesheet" href="app.css"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Heebo:400,400italic,500,500italic,700|Roboto:400,400italic,500,500italic,700">
@@ -179,6 +179,7 @@
      new Vue({
        el: '#app',
        data: {
+         config: config,
          search: {
            current: '',
            previous: '',
@@ -207,99 +208,6 @@
 
          // Helper functions.
          // ...................................................................
-
-         authToken() {
-           let url  = null;
-           let data = {};
-
-           if (this.search.cancelled) {
-             log.debug('search cancelled -- stopping authToken()');
-             return null;
-           };
-
-           // If config has a user & password, use UID auth, else we use IP.
-           if (config.user && config.password) {
-             log.debug('getting authentication token using UID auth method');
-             url = config.UIDauthURL
-             data = JSON.stringify({ "UserId": config.user,
-                                     "Password": config.password });
-           } else {
-             log.debug('getting authentication token using IP auth method');
-             url = config.IPauthURL;
-           }
-           return net.post(url, config.corsproxy, data)
-                     .then(data => {
-                       // We're expecting an object.  If we get a string, 
-                       // it's an error message from our net.js.
-                       if (obj.isString(data)) {
-                         this.error = data;
-                         return null;
-                       } else {
-                         return data.AuthToken;
-                       }
-                     })
-                     .catch(exception => {
-                       if (obj.isString(exception))
-                         this.error = exception;
-                       return null;
-                     });
-         },
-
-         sessionToken(a_token) {
-           if (! a_token) {
-             log.debug("no authentication token -- can't get session token");
-             return null;
-           };
-
-           if (this.search.cancelled) {
-             log.debug('search cancelled -- stopping sessionToken()');
-             return null;
-           };
-
-           log.debug('getting session token');
-           return net.post(config.sessionURL, config.corsproxy,
-                           {'Profile': 'edsapi'},
-                           {'x-authenticationToken': a_token })
-                     .then(data => data.SessionToken);
-         },
-
-         searchResults(a_token, s_token) {
-           if (! a_token || ! s_token) {
-             log.debug("do not have all necessary tokens -- aborting search");
-             return null;
-           };
-
-           if (this.search.cancelled) {
-             log.debug('search cancelled -- stopping searchResults()');
-             return null;
-           };
-
-           let headers = {'x-authenticationToken': a_token,
-                          'x-sessionToken': s_token,
-                          'Content-Type': 'application/json' };
-           let data = {
-             "SearchCriteria": {
-               "Queries": [ { "Term": this.search.current } ],
-               "SearchMode": "all",
-               "IncludeFacets": "y",
-               "Sort": this.sortMode,
-               "AutoSuggest": "n",
-               "AutoCorrect": this.autocorrect ? "y" : "n",
-             },
-             "RetrievalCriteria": {
-               "View": "brief",
-               "ResultsPerPage": this.perPage,
-               "PageNumber": this.currentPage,
-               "Highlight": this.highlightTerms ? "y" : "n",
-               "IncludeImageQuickView": "n"
-             },
-             "Actions": null
-           };
-           log.debug('sending search query');
-           log.debug(this.perPage);
-           return net.post(config.searchURL, config.corsproxy, data, headers)
-                     .then(data => data.SearchResult);
-         },
 
          pubTitle(record) {
            for (var item of record.Items) {
@@ -459,16 +367,16 @@
            this.search.inProgress = true;
            document.getElementById("search-button").focus();
 
-           let authTokenPromise = this.authToken();
+           let authTokenPromise = eds.authToken(this);
 
            let sessionTokenPromise = authTokenPromise.then(
              (atok) => {
-               return this.sessionToken(atok);
+               return eds.sessionToken(this, atok);
              });
 
            let searchPromise = Promise.all([authTokenPromise, sessionTokenPromise]).then(
              (tokens) => {
-               return this.searchResults(tokens[0], tokens[1]);
+               return eds.searchResults(this, tokens[0], tokens[1]);
              });
 
            let items = searchPromise.then(
