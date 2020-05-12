@@ -120,7 +120,7 @@
                       <a v-bind:href="pubURL(record)" v-html="pubDOI(record)"></a>
                     </div>
                     <div class="pub-data">
-                      <tree-view v-bind:data="record" v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 0}" />
+                      <tree-view v-bind:data="record" v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 0, link: true}" />
                     </div>
                   </div>
                 </li>
