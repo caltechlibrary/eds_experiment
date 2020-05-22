@@ -8,6 +8,7 @@
     <script type="text/javascript" src="https://unpkg.com/vue-select"></script>
     <link rel="stylesheet" href="https://unpkg.com/vue-select@latest/dist/vue-select.css">
     <script type="text/javascript" src="https://unpkg.com/vue-json-tree-view"></script>
+    <!-- <script type="text/javascript" src="vue-json-tree-view.umd.js"></script> -->
 
     <!-- Load general JavaScript dependencies. -->
 
@@ -102,7 +103,13 @@
             </div>
             <div class="results-table">
               <ol class="results-list">
-                <li v-for="record in records" v-bind:value="pubResultId(record)">
+                <!-- In the <li> element next, the "set" being assigned is a
+                     fake prop. It's a hack to provide a way to execute an
+                     assignment while executing this loop. The "altindex" 
+                     variable is needed to create a unique key in the tree
+                     view code later below. -->
+                <li v-for="(record, index) in records" v-bind:value="pubResultId(record)"
+                    v-bind:set="altindex = index + records.length">
                   <div class="pub-record">
                     <div class="pub-title">
                       <span v-html="pubTitle(record)"></span>
@@ -120,8 +127,28 @@
                       <a v-bind:href="pubURL(record)" v-html="pubDOI(record)"></a>
                     </div>
                     <div class="pub-data">
-                      <tree-view v-bind:data="record" v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 0, link: true}" />
+               	      <button v-on:click="expanded = index + 1" class="expand-button">Expand all</button>
+                      <div v-if="expanded !== index + 1">
+                        <tree-view v-bind:data="record"
+                                   v-bind:key="index"
+                                   v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 0, link: true}" />
+                      </div>
+                      <div v-else>
+                        <!-- The value of the "key" attribute must be a scalar,
+                             must be unique. If you use the value of index
+                             (already used in the tree-view above), the action
+                             completely fails to work, and I'm stumped about
+                             why.  Also, using an array value like foo[index]
+                             does not work either.  Using a unique scalar 
+                             variable value as shown below is literally the
+                             only thing that has worked, after many hours of
+                             experimentation with alternatives. -->
+                        <tree-view v-bind:data="record"
+                                   v-bind:key="altindex"
+                                   v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 1000, link: true}" />
+                      </div>
                     </div>
+                    
                   </div>
                 </li>
               </ol>
@@ -201,9 +228,11 @@
          highlightTerms: true,
          autocorrect: true,
          records: [],
+         altindex: 0,
+         expanded: 0,
          sortOptions: ['relevance', 'date'],
          sortMode: 'relevance',
-         perPage: 20,
+         perPage: 10,
          perPageOptions: ['5', '10', '20', '50', '100'],
          currentPage: 1,
          error: false,
@@ -426,11 +455,13 @@
                };
 
                if (results.Data.hasOwnProperty('Records')) {
+                 log.debug('updating records');
                  this.records = results.Data.Records;                 
                };
              });
          },
-       }
+       },
+       
      })
     </script>
   </body>
