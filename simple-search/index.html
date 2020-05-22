@@ -131,7 +131,7 @@
                       <div v-if="expanded !== index + 1">
                         <tree-view v-bind:data="record"
                                    v-bind:key="index"
-                                   v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 0, link: true}" />
+                                   v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 1, link: true}" />
                       </div>
                       <div v-else>
                         <!-- The value of the "key" attribute must be a scalar,
