@@ -144,7 +144,7 @@ var eds = {
                 "AutoCorrect": current.autocorrect ? "y" : "n",
             },
             "RetrievalCriteria": {
-                "View": "brief",
+                "View": "detailed",
                 "ResultsPerPage": current.perPage,
                 "PageNumber": current.currentPage,
                 "Highlight": current.highlightTerms ? "y" : "n",
