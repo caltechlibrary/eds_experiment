@@ -66,6 +66,13 @@ const replacements = [
 
 var eds = {
     authToken: function authToken(current) {
+        if (current.authToken) {
+            log.debug('returning existing auth token');
+            return new Promise(function(resolve, reject) {
+                resolve(current.authToken);
+            });
+        };
+
         let url  = null;
         let data = {};
 
@@ -92,6 +99,8 @@ var eds = {
                     current.error = data;
                     return null;
                 } else {
+                    log.debug('saving auth token in current page');
+                    current.authToken = data.AuthToken;
                     return data.AuthToken;
                 }
             })
@@ -103,6 +112,13 @@ var eds = {
     },
 
     sessionToken: function sessionToken(current, a_token) {
+        if (current.sessionToken) {
+            log.debug('returning existing session token');
+            return new Promise(function(resolve, reject) {
+                resolve(current.sessionToken);
+            });
+        }
+
         if (! a_token) {
             log.debug("no authentication token -- can't get session token");
             return null;
@@ -117,7 +133,11 @@ var eds = {
         return net.post(current.config.sessionURL, current.config.corsproxy,
                         {'Profile': 'edsapi'},
                         {'x-authenticationToken': a_token })
-            .then(data => data.SessionToken);
+            .then((data) => {
+                log.debug('saving session token in current page');
+                current.sessionToken = data.SessionToken;
+                return data.SessionToken;
+            });
     },
 
     searchResults: function searchResults(current, a_token, s_token) {
