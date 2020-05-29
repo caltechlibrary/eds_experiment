@@ -14,6 +14,7 @@
 try {
     var log = require('he');
     var log = require('loglevel');
+    var _   = require('lodash');
 
     var obj = require('./log');
     var obj = require('./net');
@@ -64,6 +65,7 @@ const replacements = [
     [/<\/ulink/i,       '</a'],
 ];
 
+
 var eds = {
     authToken: function authToken(current) {
         if (current.authToken) {
@@ -111,6 +113,7 @@ var eds = {
             });
     },
 
+
     sessionToken: function sessionToken(current, a_token) {
         if (current.sessionToken) {
             log.debug('returning existing session token');
@@ -140,7 +143,8 @@ var eds = {
             });
     },
 
-    searchResults: function searchResults(current, a_token, s_token) {
+
+    searchResults: function searchResults(current, a_token, s_token, sources) {
         if (! a_token || ! s_token) {
             log.debug("do not have all necessary tokens -- aborting search");
             return null;
@@ -170,20 +174,136 @@ var eds = {
                 "Highlight": current.highlightTerms ? "y" : "n",
                 "IncludeImageQuickView": "n"
             },
-            "Actions": null
+            "Actions": sources.length > 0 ? [ "AddFacetFilter(Publication:" + sources[0].Id + ")" ] : null,
         };
-        log.debug('sending search query');
-        log.debug(current.perPage);
+        log.debug('sending search query', data);
+        log.debug('results per page:', current.perPage);
         return net.post(current.config.searchURL, current.config.corsproxy,
                         data, headers)
             .then(data => data.SearchResult);
     },
+
 
     filtered: function filtered(str) {
         let htmlified = he.decode(str);
         for (var rule of replacements)
             htmlified = htmlified.replaceAll(rule[0], rule[1]);
         return htmlified;
+    },
+
+
+    sourceList: function sourceList(databases) {
+        // Each array element has Hits, Id, Label, Status.
+        // We return a list sorted by most hits.
+        if (databases) 
+            return _.reverse(_.sortBy(databases, 'Hits'));
+        else
+            return [];
+    },
+
+    pubTitle: function pubTitle(record) {
+        for (var item of record.Items) {
+            if (item.Label === 'Title')
+                return eds.filtered(item.Data);
+        };
+        this.warnMissing(record, 'Title element in Items array');
+        return '(missing title)';
+    },
+
+    pubAuthors: function pubAuthors(record) {
+        // Not everything has an authors field.
+        for (var item of record.Items) {
+            if (item.Label === 'Authors') {
+                let htmlified = eds.filtered(item.Data);
+                htmlified = htmlified.replaceAll(/<searchlink.*?>(.+?)<\/searchlink>/i,
+                                                 '<span class="author">$1</span>');
+                htmlified = htmlified.replaceAll(/<i>(.+?)<\/i>/i, '');
+                htmlified = htmlified.replace(/ \(AUTHOR\)/gi, ' ');
+                htmlified = htmlified.replace(/, Editor/gi, ' ');
+                htmlified = htmlified.replace(/, Series Editor/gi, ' ');
+                return htmlified;
+            }
+        };
+        this.warnMissing(record, 'Authors');
+        return '(missing authors)';
+    },
+
+    pubSource: function pubSource(record) {
+        // Not everything has an authors field.
+        for (var item of record.Items) {
+            if (item.Label === 'Source') {
+                let htmlified = he.decode(item.Data);
+                return htmlified;
+            }
+        };
+        this.warnMissing(record, 'Source');
+        return '(missing source)';
+    },
+
+    pubType: function pubType(record) {
+        // Not everything has an authors field.
+        if (record.hasOwnProperty('Header')) {
+            return record.Header.PubType;
+        } else {
+            this.warnMissing(record, 'Header');
+            return '(missing type)';
+        }
+    },
+
+    pubURL: function pubURL(record) {
+        // Not everything has an authors field.
+        if (record.hasOwnProperty('PLink')) {
+            return record.PLink;
+        } else {
+            this.warnMissing(record, 'PLink');
+            return '(missing URL)';
+        }
+    },
+
+    pubResultId: function pubResultId(record) {
+        // Not everything has an authors field.
+        if (record.hasOwnProperty('ResultId')) {
+            return record.ResultId;
+        } else {
+            this.warnMissing(record, 'ResultId');
+            return '(missing result id)';
+        }
+    },
+
+    pubDOI: function pubDOI(record) {
+        // Not everything has an authors field.
+        if (! record.hasOwnProperty('RecordInfo')) {
+            this.warnMissing(record, 'RecordInfo');
+            return 'missing';
+        };
+        if (! record.RecordInfo.hasOwnProperty('BibRecord')) {
+            this.warnMissing(record, 'RecordInfo.BibRecord');           
+            return 'missing';
+        };
+        if (! record.RecordInfo.BibRecord.hasOwnProperty('BibEntity')) {
+            this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity');
+            return 'missing';
+        };
+        let entity = record.RecordInfo.BibRecord.BibEntity;
+        if (! entity.hasOwnProperty('Identifiers')) {
+            this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity.Identifiers');
+            return 'missing';
+        } else {
+            for (var item of entity.Identifiers) {
+                if (item.Type === 'doi')
+                    return item.Value;
+            }
+        };
+        return '(missing DOI)';
+    },
+
+    warnMissing: function warnMissing(record, field) {
+        if (record.hasOwnProperty('ResultId'))
+            log.warn('record #', record.ResultId, 'has no', field, ':', record);
+        else if (record.hasOwnProperty('Items') && record.Items[0].Label === 'Title')
+            log.warn('record has no ResultId or', field, ':', record);
+        else
+            log.warn('record has no ResultId, title, or', field, 'property:', record);
     },
 }
 
