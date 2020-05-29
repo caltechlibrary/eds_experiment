@@ -174,7 +174,7 @@ var eds = {
                 "Highlight": current.highlightTerms ? "y" : "n",
                 "IncludeImageQuickView": "n"
             },
-            "Actions": sources.length > 0 ? [ "AddFacetFilter(Publication:" + sources[0].Id + ")" ] : null,
+            "Actions": sources.length > 0 ? eds.sourceFacetsList(sources) : null,
         };
         log.debug('sending search query', data);
         log.debug('results per page:', current.perPage);
@@ -183,6 +183,16 @@ var eds = {
             .then(data => data.SearchResult);
     },
 
+
+    sourceFacetsList: function sourceFacetsList(sources) {
+        let facets = [];
+        for (var s of sources) {
+            let name = s.Label.replace(/([:,()])/g, '\\\1');
+            facets = facets.concat('addfacetfilter(ContentProvider:' + name + ')');
+        }
+        log.debug('facet list:', facets);
+        return facets;
+    },
 
     filtered: function filtered(str) {
         let htmlified = he.decode(str);
@@ -206,7 +216,7 @@ var eds = {
             if (item.Label === 'Title')
                 return eds.filtered(item.Data);
         };
-        this.warnMissing(record, 'Title element in Items array');
+        eds.warnMissing(record, 'Title element in Items array');
         return '(missing title)';
     },
 
@@ -224,7 +234,7 @@ var eds = {
                 return htmlified;
             }
         };
-        this.warnMissing(record, 'Authors');
+        eds.warnMissing(record, 'Authors');
         return '(missing authors)';
     },
 
@@ -236,7 +246,7 @@ var eds = {
                 return htmlified;
             }
         };
-        this.warnMissing(record, 'Source');
+        eds.warnMissing(record, 'Source');
         return '(missing source)';
     },
 
@@ -245,7 +255,7 @@ var eds = {
         if (record.hasOwnProperty('Header')) {
             return record.Header.PubType;
         } else {
-            this.warnMissing(record, 'Header');
+            eds.warnMissing(record, 'Header');
             return '(missing type)';
         }
     },
@@ -255,7 +265,7 @@ var eds = {
         if (record.hasOwnProperty('PLink')) {
             return record.PLink;
         } else {
-            this.warnMissing(record, 'PLink');
+            eds.warnMissing(record, 'PLink');
             return '(missing URL)';
         }
     },
@@ -265,7 +275,7 @@ var eds = {
         if (record.hasOwnProperty('ResultId')) {
             return record.ResultId;
         } else {
-            this.warnMissing(record, 'ResultId');
+            eds.warnMissing(record, 'ResultId');
             return '(missing result id)';
         }
     },
@@ -273,20 +283,20 @@ var eds = {
     pubDOI: function pubDOI(record) {
         // Not everything has an authors field.
         if (! record.hasOwnProperty('RecordInfo')) {
-            this.warnMissing(record, 'RecordInfo');
+            eds.warnMissing(record, 'RecordInfo');
             return 'missing';
         };
         if (! record.RecordInfo.hasOwnProperty('BibRecord')) {
-            this.warnMissing(record, 'RecordInfo.BibRecord');           
+            eds.warnMissing(record, 'RecordInfo.BibRecord');           
             return 'missing';
         };
         if (! record.RecordInfo.BibRecord.hasOwnProperty('BibEntity')) {
-            this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity');
+            eds.warnMissing(record, 'RecordInfo.BibRecord.BibEntity');
             return 'missing';
         };
         let entity = record.RecordInfo.BibRecord.BibEntity;
         if (! entity.hasOwnProperty('Identifiers')) {
-            this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity.Identifiers');
+            eds.warnMissing(record, 'RecordInfo.BibRecord.BibEntity.Identifiers');
             return 'missing';
         } else {
             for (var item of entity.Identifiers) {

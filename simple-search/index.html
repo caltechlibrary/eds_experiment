@@ -7,11 +7,13 @@
     <link rel="stylesheet" href="https://unpkg.com/vue-spinners/dist/vue-spinners.css">
     <script type="text/javascript" src="https://unpkg.com/vue-select"></script>
     <link rel="stylesheet" href="https://unpkg.com/vue-select@latest/dist/vue-select.css">
+    <script src="https://unpkg.com/vue-multiselect@2.1.0"></script>
+    <link rel="stylesheet" href="https://unpkg.com/vue-multiselect@2.1.0/dist/vue-multiselect.min.css">
     <script type="text/javascript" src="https://unpkg.com/vue-json-tree-view"></script>
-    <!-- <script type="text/javascript" src="vue-json-tree-view.umd.js"></script> -->
 
     <!-- Load general JavaScript dependencies. -->
 
+    <script type="text/javascript" src="https://unpkg.com/lodash"></script>
     <script type="text/javascript" src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/loglevel"></script>
     <script type="text/javascript" src="https://unpkg.com/loglevel-plugin-prefix"></script>
@@ -31,7 +33,6 @@
     <script type="text/javascript" src="lib/eds.js"></script>
 
     <link rel="stylesheet" href="app.css"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Heebo:400,400italic,500,500italic,700|Roboto:400,400italic,500,500italic,700">
   </head>
   <body>
     <div id="app">
@@ -76,89 +77,105 @@
             {{ search.inProgress ? "Cancel" : "Search" }}
           </button>
 
+          <spinner v-if="search.inProgress"></spinner>
+
           <popup v-if="error" v-on:close="error = false">
             <span slot="header">Error</span>
             <span slot="body">{{ error }}.</span>
           </popup>
 
-          <div class="output">
+          <div class="results">
             <span class="search-status">
-              {{ search.status }}<circ v-if="search.inProgress"></circ>
+              {{ search.status }}
             </span>
-            <span class="num-results">{{ search.numResults }}</span>
-            <div class="results-autocorrections">
-              <div v-if="search.autocorrected.replacement" class="autocorrect-replacements">
-                Automatically replaced "<span v-for="word in search.autocorrected.original"
-                                              v-bind:value="search.autocorrected.original"
-                                              class="autocorrect-original-word">{{ word }}</span>"
-                with "<span v-for="word in search.autocorrected.replacement"
-                            v-bind:value="search.autocorrected.replacement"
-                            class="autocorrect-replaced-word">{{ word }}</span>".
+
+            <div class="results-left">
+              <span class="num-results">{{ search.numResults }}</span>
+              <div class="results-autocorrections">
+                <div v-if="search.autocorrected.replacement" class="autocorrect-replacements">
+                  Automatically replaced "<span v-for="word in search.autocorrected.original"
+                                                v-bind:value="search.autocorrected.original"
+                                                class="autocorrect-original-word">{{ word }}</span>"
+                  with "<span v-for="word in search.autocorrected.replacement"
+                              v-bind:value="search.autocorrected.replacement"
+                              class="autocorrect-replaced-word">{{ word }}</span>".
+                </div>
+                <div v-if="search.autocorrected.didyoumean" class="autocorrect-did-you-mean">
+                  Did you mean "<span v-for="word in search.autocorrected.didyoumean"
+                                      v-bind:value="search.autocorrected.didyoumean"
+                                      class="autocorrect-suggested-word">{{ word }}</span>"?
+                </div>
               </div>
-              <div v-if="search.autocorrected.didyoumean" class="autocorrect-did-you-mean">
-                Did you mean "<span v-for="word in search.autocorrected.didyoumean"
-                                    v-bind:value="search.autocorrected.didyoumean"
-                                    class="autocorrect-suggested-word">{{ word }}</span>"?
+              <div class="refine-source" v-if="sources.length > 0">
+                <span class="refine-source-text">Refine your results:</span>
+                <multiselect v-model="refine.limitSources" :options="sources"
+                             :multiple="true" :searchable="true"
+                             :custom-label="nameWithHits" placeholder="Select publication(s)"
+                             :close-on-select="false" :clear-on-select="false"
+                             :limit="5"></multiselect>
               </div>
             </div>
-            <div class="results-table">
-              <ol class="results-list">
-                <!-- In the <li> element next, the "set" being assigned is a
-                     fake prop. It's a hack to provide a way to execute an
-                     assignment while executing this loop. The "altindex" 
-                     variable is needed to create a unique key in the tree
-                     view code later below. -->
-                <li v-for="(record, index) in records" v-bind:value="pubResultId(record)"
-                    v-bind:set="altindex = index + records.length">
-                  <div class="pub-record">
-                    <div class="pub-title">
-                      <span v-html="pubTitle(record)"></span>
-                    </div>
-                    <div class="pub-authors">
-                      <span v-html="pubAuthors(record)"></span>
-                    </div>
-                    <div class="pub-source-type">
-                      <span v-html="pubType(record)"></span>
-                    </div>
-                    <div class="pub-source">
-                      <span v-html="pubSource(record)"></span>
-                    </div>
-                    <div class="pub-doi">
-                      <a v-bind:href="pubURL(record)" v-html="pubDOI(record)"></a>
-                    </div>
-                    <div class="pub-data">
-               	      <button v-on:click="expanded = index + 1" class="expand-button">Expand all</button>
-                      <div v-if="expanded !== index + 1">
-                        <tree-view v-bind:data="record"
-                                   v-bind:key="index"
-                                   v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 1, link: true}" />
+
+            <div class="results-right">
+
+                <ol class="results-list">
+                  <!-- In the <li> element next, the "set" being assigned is a
+                       fake prop. It's a hack to provide a way to execute an
+                       assignment while executing this loop. The "altindex" 
+                       variable is needed to create a unique key in the tree
+                       view code later below. -->
+                  <li v-for="(record, index) in records" v-bind:value="pubResultId(record)"
+                      v-bind:set="altindex = index + records.length">
+                    <div class="pub-record">
+                      <div class="pub-title">
+                        <span v-html="pubTitle(record)"></span>
                       </div>
-                      <div v-else>
-                        <!-- The value of the "key" attribute must be a scalar,
-                             must be unique. If you use the value of index
-                             (already used in the tree-view above), the action
-                             completely fails to work, and I'm stumped about
-                             why.  Also, using an array value like foo[index]
-                             does not work either.  Using a unique scalar 
-                             variable value as shown below is literally the
-                             only thing that has worked, after many hours of
-                             experimentation with alternatives. -->
-                        <tree-view v-bind:data="record"
-                                   v-bind:key="altindex"
-                                   v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 1000, link: true}" />
+                      <div class="pub-authors">
+                        <span v-html="pubAuthors(record)"></span>
                       </div>
+                      <div class="pub-source-type">
+                        <span v-html="pubType(record)"></span>
+                      </div>
+                      <div class="pub-source">
+                        <span v-html="pubSource(record)"></span>
+                      </div>
+                      <div class="pub-doi">
+                        <a v-bind:href="pubURL(record)" v-html="pubDOI(record)"></a>
+                      </div>
+                      <div class="pub-data">
+               	        <button v-on:click="expanded = index + 1" class="expand-button">Expand all</button>
+                        <div v-if="expanded !== index + 1">
+                          <tree-view v-bind:data="record"
+                                     v-bind:key="index"
+                                     v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 1, link: true}" />
+                        </div>
+                        <div v-else>
+                          <!-- The value of the "key" attribute must be a scalar,
+                               must be unique. If you use the value of index
+                               (already used in the tree-view above), the action
+                               completely fails to work, and I'm stumped about
+                               why.  Also, using an array value like foo[index]
+                               does not work either.  Using a separate variable 
+                               "altindex" as shown below is literally the
+                               only thing that has worked, after many hours of
+                               experimentation with alternatives. -->
+                          <tree-view v-bind:data="record"
+                                     v-bind:key="altindex"
+                                     v-bind:options="{rootObjectKey: 'Record structure', maxDepth: 1000, link: true}" />
+                        </div>
+                      </div>
+                      
                     </div>
-                    
-                  </div>
-                </li>
-              </ol>
+                  </li>
+                </ol>
+
             </div>
-            <div class="paginator">
-              <button v-if="currentPage > 1 && ! search.inProgress" v-on:click="run(currentPage - 1)"
-                      class="paging-button" id="paging-button">&larr; Previous page</button>
-              <button v-if="records.length > 0" v-on:click="run(currentPage + 1)"
-                      class="paging-button" id="paging-button">Next page &rarr;</button>
-            </div>
+          </div>
+          <div class="paginator">
+            <button v-if="currentPage > 1 && ! search.inProgress" v-on:click="run(currentPage - 1)"
+                    class="paging-button" id="paging-button">&larr; Previous page</button>
+            <button v-if="records.length > 0" v-on:click="run(currentPage + 1)"
+                    class="paging-button" id="paging-button">Next page &rarr;</button>
           </div>
         </div>
       </div>
@@ -179,9 +196,10 @@
      // Main code.
      // .......................................................................
 
-     Vue.component('circ', VueSpinners.CircleSpinner);
+     Vue.component('spinner', VueSpinners.CircleSpinner);
      Vue.component('v-select', VueSelect.VueSelect);
      Vue.component('tree-view', TreeView.TreeView);
+     Vue.component('multiselect', VueMultiselect.Multiselect);
 
      Vue.component("popup", {
        template: `
@@ -218,18 +236,22 @@
            current: '',
            previous: '',
            inProgress: false,
+           cancelled: false,
            status: '',
            numResults: '',
-           cancelled: false,
            autocorrected: {
              original: '',
              replacement: '',
              didyoumean: '',
            },
          },
+         refine: {
+           limitSources: [],
+         },
          highlightTerms: true,
          autocorrect: true,
          records: [],
+         sources: [],
          altindex: 0,
          expanded: 0,
          sortOptions: ['relevance', 'date'],
@@ -242,125 +264,39 @@
        },
        methods: {
 
-         // Helper functions.
+         // Make methods from other files accessible in <html> elements above.
          // ...................................................................
 
-         pubTitle(record) {
-           for (var item of record.Items) {
-             if (item.Label === 'Title')
-               return eds.filtered(item.Data);
-           };
-           this.warnMissing(record, 'Title element in Items array');
-           return '(missing title)';
-         },
+         pubTitle:    eds.pubTitle,
+         pubAuthors:  eds.pubAuthors,
+         pubSource:   eds.pubSource,
+         pubType:     eds.pubType,
+         pubURL:      eds.pubURL,
+         pubResultId: eds.pubResultId,
+         pubDOI:      eds.pubDOI,
 
-         pubAuthors(record) {
-           // Not everything has an authors field.
-           for (var item of record.Items) {
-             if (item.Label === 'Authors') {
-               let htmlified = eds.filtered(item.Data);
-               htmlified = htmlified.replaceAll(/<searchlink.*?>(.+?)<\/searchlink>/i,
-                                                '<span class="author">$1</span>');
-               htmlified = htmlified.replaceAll(/<i>(.+?)<\/i>/i, '');
-               htmlified = htmlified.replace(/ \(AUTHOR\)/gi, ' ');
-               htmlified = htmlified.replace(/, Editor/gi, ' ');
-               htmlified = htmlified.replace(/, Series Editor/gi, ' ');
-               return htmlified;
-             }
-           };
-           this.warnMissing(record, 'Authors');
-           return '(missing authors)';
-         },
 
-         pubSource(record) {
-           // Not everything has an authors field.
-             for (var item of record.Items) {
-               if (item.Label === 'Source') {
-                 let htmlified = he.decode(item.Data);
-                 return htmlified;
-               }
-             };
-             this.warnMissing(record, 'Source');
-             return '(missing source)';
-         },
-
-         pubType(record) {
-           // Not everything has an authors field.
-           if (record.hasOwnProperty('Header')) {
-             return record.Header.PubType;
-           } else {
-             this.warnMissing(record, 'Header');
-             return '(missing type)';
-           }
-         },
-
-         pubURL(record) {
-           // Not everything has an authors field.
-           if (record.hasOwnProperty('PLink')) {
-             return record.PLink;
-           } else {
-             this.warnMissing(record, 'PLink');
-             return '(missing URL)';
-           }
-         },
-
-         pubResultId(record) {
-           // Not everything has an authors field.
-           if (record.hasOwnProperty('ResultId')) {
-             return record.ResultId;
-           } else {
-             this.warnMissing(record, 'ResultId');
-             return '(missing result id)';
-           }
-         },
-
-         pubDOI(record) {
-           // Not everything has an authors field.
-           if (! record.hasOwnProperty('RecordInfo')) {
-             this.warnMissing(record, 'RecordInfo');
-             return 'missing';
-           };
-           if (! record.RecordInfo.hasOwnProperty('BibRecord')) {
-             this.warnMissing(record, 'RecordInfo.BibRecord');           
-             return 'missing';
-           };
-           if (! record.RecordInfo.BibRecord.hasOwnProperty('BibEntity')) {
-             this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity');
-             return 'missing';
-           };
-           let entity = record.RecordInfo.BibRecord.BibEntity;
-           if (! entity.hasOwnProperty('Identifiers')) {
-             this.warnMissing(record, 'RecordInfo.BibRecord.BibEntity.Identifiers');
-             return 'missing';
-           } else {
-             for (var item of entity.Identifiers) {
-               if (item.Type === 'doi')
-                 return item.Value;
-             }
-           };
-           return '(missing DOI)';
-         },
+         // Helper functions.
+         // ...................................................................
 
          setSortMode(mode) {
            this.sortMode = mode;
            log.debug(`${mode} sort mode selected`);
          },
 
-         warnMissing(record, field) {
-           if (record.hasOwnProperty('ResultId'))
-             log.warn('record #', record.ResultId, 'has no', field, ':', record);
-           else if (record.hasOwnProperty('Items') && record.Items[0].Label === 'Title')
-             log.warn('record has no ResultId or', field, ':', record);
-           else
-             log.warn('record has no ResultId, title, or', field, 'property:', record);
+         clearResults() {
+           log.debug('clearing displayed results');           
+           this.records = [];
+           this.search.cancelled = false;
          },
 
          resetSearch() {
            log.debug('resetting search state');
-           this.records = [];
+           this.clearResults();
+           this.sources = [];
+           this.refine.limitSources = [];
            this.search.numResults = '';
            this.search.previous = '';
-           this.search.cancelled = false;
            this.search.autocorrected.original = '';
            this.search.autocorrected.replacement = '';
            this.search.autocorrected.didyoumean = '';
@@ -372,23 +308,39 @@
            this.search.status = 'Cancelling ...'
          },
 
+         nameWithHits(source) {
+           return `${source.Label} (hits: ${Humanize.intComma(source.Hits)})`;
+         },
+
 
          // Main body.
          // ...................................................................
 
          run(nextPage = 1) {
-           // Sanity checks.
+           // We have 3 possibilities: (1) it's the first search for a given
+           // string, in which case nextPage === 1; (2) it's a request for
+           // another page, in which case nextPage > 1; or (3) it's a refined
+           // search, in which case nextPage === 1, and 
+           // search.current = search.previous, and refine.limitSources != [].
 
-           if (nextPage === 1 && (this.search.current != this.search.previous)) {
-             // Doing a new search but there are results from a previous one.
-             log.debug('clearing state and starting a new search')
-             this.resetSearch();
-             this.currentPage = 1;
+           if (nextPage === 1) {
+             if (this.search.current != this.search.previous) {
+               // Doing a new search but there are results from a previous one.
+               log.debug('clearing state and starting a new search')
+               this.resetSearch();
+               this.currentPage = 1;
+             } else if (this.refine.limitSources) {
+               log.debug('searching with limited sources');
+               // Fall through to next steps.
+             } else {
+               log.debug('redoing identical search');
+               // Maybe the user has a reason to do this, so let them.
+             }
            } else if (nextPage > 1) {
              // Doing next page of an existing search.
              log.debug('nextPage =', nextPage);
              this.currentPage = nextPage;
-             this.resetSearch();
+             this.clearResults();
            };
 
            if (! this.search.current) {
@@ -412,7 +364,7 @@
 
            let searchPromise = Promise.all([authTokenPromise, sessionTokenPromise]).then(
              (tokens) => {
-               return eds.searchResults(this, tokens[0], tokens[1]);
+               return eds.searchResults(this, tokens[0], tokens[1], this.refine.limitSources);
              });
 
            let items = searchPromise.then(
@@ -458,7 +410,13 @@
 
                if (results.Data.hasOwnProperty('Records')) {
                  log.debug('updating records');
-                 this.records = results.Data.Records;                 
+                 // This triggers the Vue component filling in the results.
+                 this.records = results.Data.Records;
+
+                 // Now populate the pull-down menu of journal titles. Use only
+                 // those that have non-zero number of hits in the search.
+                 // results.Statistics.Databases
+                 this.sources = eds.sourceList(results.Statistics.Databases);
                };
              });
          },
