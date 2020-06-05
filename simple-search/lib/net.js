@@ -89,8 +89,8 @@ var net = {
                 } else if (exception.request) {
                     // The request was made but no response was received.
                     log.error('problem with post to', url);
-                    log.error(exception.request);
-                    returnValue =  exception.request;
+                    log.error(exception.message);
+                    returnValue =  exception.message;
                 } else if (exception.response) {
                     // Request was made and server responded.
                     log.error('problem with response to', url);
