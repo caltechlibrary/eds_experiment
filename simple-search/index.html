@@ -72,10 +72,15 @@
             </div>
           </div>
 
-          <button v-on:click="search.inProgress ? cancel() : run(currentPage)" 
-                  class="search-button" id="search-button">
-            {{ search.inProgress ? "Cancel" : "Search" }}
-          </button>
+          <div class="search-button">
+            <button v-on:click="search.inProgress ? cancel() : run(currentPage)" 
+                    id="search-button">
+              <span v-if="refine.limitSources.length === 0 || refine.doneSearch"
+                    class="search-message">{{ search.inProgress ? "Cancel" : "Search" }}</span>
+              <span v-if="refine.limitSources.length > 0 && !refine.doneSearch"
+                    class="search-update-message">{{ search.inProgress ? "Cancel" : "Update search results" }}</span>
+            </button>
+          </div>
 
           <spinner v-if="search.inProgress"></spinner>
 
@@ -249,6 +254,7 @@
          },
          refine: {
            limitSources: [],
+           doneSearch: false,
          },
          highlightTerms: true,
          autocorrect: true,
@@ -297,6 +303,7 @@
            this.clearResults();
            this.sources = [];
            this.refine.limitSources = [];
+           this.refine.doneSearch = false;
            this.search.numResults = '';
            this.search.previous = '';
            this.search.autocorrected.original = '';
@@ -338,6 +345,7 @@
                this.currentPage = 1;
              } else if (this.refine.limitSources) {
                log.debug('searching with limited sources');
+               this.refine.doneSearch = true;
                // Fall through to next steps.
              } else {
                log.debug('redoing identical search');

@@ -75,10 +75,28 @@ h1 {
 
 .search-button {
   display: block;
+  width: 100%;
   margin: 2em auto;
 }
 
+@keyframes shadow-pulse
+{
+     0% {
+          box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.2);
+     }
+     100% {
+          box-shadow: 0 0 0 1em rgba(0, 0, 0, 0);
+     }
+}
+
+.search-update-message {
+  font-weight: bold;
+  animation: shadow-pulse 1s infinite;
+}
+
 #search-button {
+  display: block;
+  margin: 0 auto;
   font-size: 110%;
   -webkit-appearance: none;
   -moz-appearance: none; 
