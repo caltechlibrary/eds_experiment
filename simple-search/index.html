@@ -106,7 +106,8 @@
                                       class="autocorrect-suggested-word">{{ word }}</span>"?
                 </div>
               </div>
-              <div class="refine-source" v-if="sources.length > 0">
+              <div class="refine-source" v-if="records.length > 0">
+               	<button v-on:mousedown.prevent.stop="clearSourceSelector()" class="clear-selector-button">Clear all</button>
                 <span class="refine-source-text">Refine your results:</span>
                 <multiselect v-model="refine.limitSources" :options="sources"
                              placeholder="Select or search for database(s)"
@@ -311,6 +312,11 @@
 
          nameWithHits(source) {
            return `${source.Label} (hits: ${Humanize.intComma(source.Hits)})`;
+         },
+
+         clearSourceSelector() {
+           log.debug("clearning source selector");
+           this.refine.limitSources = [];
          },
 
 
