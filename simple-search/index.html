@@ -109,10 +109,11 @@
               <div class="refine-source" v-if="sources.length > 0">
                 <span class="refine-source-text">Refine your results:</span>
                 <multiselect v-model="refine.limitSources" :options="sources"
-                             :multiple="true" :searchable="true"
-                             :custom-label="nameWithHits" placeholder="Select or search for database(s)"
+                             placeholder="Select or search for database(s)"
+                             track-by="Id" :custom-label="nameWithHits" 
+                             :multiple="true" :searchable="true" :options-limit="500"
                              :close-on-select="false" :clear-on-select="false"
-                             :limit="5"></multiselect>
+                             :limit="5" :max-height="500"></multiselect>
               </div>
             </div>
 
