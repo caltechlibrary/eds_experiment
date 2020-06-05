@@ -98,7 +98,7 @@ var eds = {
                 // We're expecting an object.  If we get a string, 
                 // it's an error message from our net.js.
                 if (obj.isString(data)) {
-                    current.error = data;
+                    current.error = 'Network error: ' + data;
                     return null;
                 } else {
                     log.debug('saving auth token in current page');
