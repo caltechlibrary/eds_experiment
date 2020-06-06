@@ -206,7 +206,7 @@ var eds = {
         // Each array element has Hits, Id, Label, Status.
         // We return a list sorted by most hits.
         if (databases) 
-            return _.reverse(_.sortBy(databases, 'Hits'));
+            return _.reverse(_.sortBy(_.filter(databases, db => db.Hits > 0), 'Hits'));
         else
             return [];
     },
