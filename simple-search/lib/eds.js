@@ -144,7 +144,7 @@ var eds = {
     },
 
 
-    searchResults: function searchResults(current, a_token, s_token, sources) {
+    searchResults: function searchResults(current, a_token, s_token, refine) {
         if (! a_token || ! s_token) {
             log.debug("do not have all necessary tokens -- aborting search");
             return null;
@@ -154,6 +154,11 @@ var eds = {
             log.debug('search cancelled -- stopping searchResults()');
             return null;
         };
+
+        let filters = eds.databaseFilters(refine.limitDatabases);
+        filters = filters.concat(eds.facetFilters(refine.limitTypes));
+        filters = filters.concat(eds.facetFilters(refine.limitJournals));
+        log.debug('filters:', filters);
 
         let headers = {'x-authenticationToken': a_token,
                        'x-sessionToken': s_token,
@@ -174,7 +179,7 @@ var eds = {
                 "Highlight": current.highlightTerms ? "y" : "n",
                 "IncludeImageQuickView": "n"
             },
-            "Actions": sources.length > 0 ? eds.sourceFacetsList(sources) : null,
+            "Actions": filters,
         };
         log.debug('sending search query', data);
         log.debug('results per page:', current.perPage);
@@ -183,14 +188,21 @@ var eds = {
             .then(data => data.SearchResult);
     },
 
-
-    sourceFacetsList: function sourceFacetsList(sources) {
+    databaseFilters: function databaseFilters(sources) {
         let facets = [];
         for (var s of sources) {
+            // Quote certain characters.
             let name = s.Label.replace(/([:,()])/g, '\\\1');
             facets = facets.concat('addfacetfilter(ContentProvider:' + name + ')');
         }
         log.debug('facet list:', facets);
+        return facets;
+    },
+
+    facetFilters: function facetFilters(sources) {
+        let facets = [];
+        for (var s of sources)
+            facets = facets.concat(s.AddAction);
         return facets;
     },
 
@@ -208,6 +220,19 @@ var eds = {
         if (databases) 
             return _.reverse(_.sortBy(_.filter(databases, db => db.Hits > 0), 'Hits'));
         else
+            return [];
+    },
+
+    facetList: function facetList(availableFacets, name) {
+        // Expects to get results.Statistics.AvailableFacets
+        if (availableFacets) {
+            for (let facet of availableFacets) {
+                if (facet.Id === name)
+                    return facet.AvailableFacetValues;
+            };
+            log.debug('cannot find facet', name);
+            return [];
+        } else
             return [];
     },
 

@@ -75,9 +75,12 @@
           <div class="search-button">
             <button v-on:click="search.inProgress ? cancel() : run(currentPage)" 
                     id="search-button">
-              <span v-if="refine.limitSources.length === 0 || refine.doneSearch"
+              <span v-if="(refine.limitDatabases.length === 0
+                          && refine.limitJournals.length === 0 
+                          && refine.limitTypes.length === 0) || refine.doneSearch"
                     class="search-message">{{ search.inProgress ? "Cancel" : "Search" }}</span>
-              <span v-if="refine.limitSources.length > 0 && !refine.doneSearch"
+              <span v-if="(refine.limitDatabases.length > 0 || refine.limitTypes.length > 0
+                          || refine.limitJournals.length > 0) && !refine.doneSearch"
                     class="search-update-message">{{ search.inProgress ? "Cancel" : "Update search results" }}</span>
             </button>
           </div>
@@ -111,12 +114,35 @@
                                       class="autocorrect-suggested-word">{{ word }}</span>"?
                 </div>
               </div>
-              <div class="refine-source" v-if="records.length > 0">
-               	<button v-on:mousedown.prevent.stop="clearSourceSelector()" class="clear-selector-button">Clear all</button>
-                <span class="refine-source-text">Refine your results:</span>
-                <multiselect v-model="refine.limitSources" :options="sources"
+              <div class="refine" v-if="results.records.length > 0">
+               	<button v-on:mousedown.prevent.stop="clearTypeSelector()"
+                        class="clear-selector-button">Clear all</button>
+                <span class="refine-label">Narrow by resource type:</span>
+                <multiselect v-model="refine.limitTypes" :options="results.sourceTypes"
+                             placeholder="Select or search resource type(s)"
+                             track-by="Value" :custom-label="facetNameWithHits" 
+                             :multiple="true" :searchable="true" :options-limit="500"
+                             :close-on-select="false" :clear-on-select="false"
+                             :limit="5" :max-height="500"></multiselect>
+              </div>
+              <div class="refine" v-if="results.records.length > 0">
+               	<button v-on:mousedown.prevent.stop="clearJournalSelector()" 
+                        class="clear-selector-button">Clear all</button>
+                <span class="refine-label">Narrow by journals:</span>
+                <multiselect v-model="refine.limitJournals" :options="results.journals"
+                             placeholder="Select or search for journal(s)"
+                             track-by="Value" :custom-label="facetNameWithHits" 
+                             :multiple="true" :searchable="true" :options-limit="500"
+                             :close-on-select="false" :clear-on-select="false"
+                             :limit="5" :max-height="500"></multiselect>
+              </div>
+              <div class="refine" v-if="results.records.length > 0">
+               	<button v-on:mousedown.prevent.stop="clearDatabaseSelector()" 
+                        class="clear-selector-button">Clear all</button>
+                <span class="refine-label">Narrow by databases:</span>
+                <multiselect v-model="refine.limitDatabases" :options="results.databases"
                              placeholder="Select or search for database(s)"
-                             track-by="Id" :custom-label="nameWithHits" 
+                             track-by="Id" :custom-label="dbNameWithHits" 
                              :multiple="true" :searchable="true" :options-limit="500"
                              :close-on-select="false" :clear-on-select="false"
                              :limit="5" :max-height="500"></multiselect>
@@ -131,8 +157,8 @@
                        assignment while executing this loop. The "altindex" 
                        variable is needed to create a unique key in the tree
                        view code later below. -->
-                  <li v-for="(record, index) in records" v-bind:value="pubResultId(record)"
-                      v-bind:set="altindex = index + records.length">
+                  <li v-for="(record, index) in results.records" v-bind:value="pubResultId(record)"
+                      v-bind:set="altindex = index + results.records.length">
                     <div class="pub-record">
                       <div class="pub-title">
                         <span v-html="pubTitle(record)"></span>
@@ -181,7 +207,7 @@
           <div class="paginator">
             <button v-if="currentPage > 1 && ! search.inProgress" v-on:click="run(currentPage - 1)"
                     class="paging-button" id="paging-button">&larr; Previous page</button>
-            <button v-if="records.length > 0" v-on:click="run(currentPage + 1)"
+            <button v-if="results.records.length > 0" v-on:click="run(currentPage + 1)"
                     class="paging-button" id="paging-button">Next page &rarr;</button>
           </div>
         </div>
@@ -252,14 +278,21 @@
              didyoumean: '',
            },
          },
+         results: {
+           records: [],
+           databases: [],
+           sourceTypes: [],
+           journals: [],
+           subjects: [],
+         },
          refine: {
-           limitSources: [],
+           limitDatabases: [],
+           limitTypes: [],
+           limitJournals: [],
            doneSearch: false,
          },
          highlightTerms: true,
          autocorrect: true,
-         records: [],
-         sources: [],
          altindex: 0,
          expanded: 0,
          sortOptions: ['relevance', 'date'],
@@ -294,15 +327,20 @@
 
          clearResults() {
            log.debug('clearing displayed results');           
-           this.records = [];
+           this.results.records = [];
            this.search.cancelled = false;
          },
 
          resetSearch() {
            log.debug('resetting search state');
            this.clearResults();
-           this.sources = [];
-           this.refine.limitSources = [];
+           this.results.databases = [];
+           this.results.sourceTypes = [];
+           this.results.journals = [];
+           this.results.subjects = [];
+           this.refine.limitDatabases = [];
+           this.refine.limitTypes = [];
+           this.refine.limitJournals = [];
            this.refine.doneSearch = false;
            this.search.numResults = '';
            this.search.previous = '';
@@ -317,13 +355,27 @@
            this.search.status = 'Cancelling ...'
          },
 
-         nameWithHits(source) {
-           return `${source.Label} (hits: ${Humanize.intComma(source.Hits)})`;
+         facetNameWithHits(f) {
+           return `${f.Value.toTitleCase()} (hits: ${Humanize.intComma(f.Count)})`;
          },
 
-         clearSourceSelector() {
+         dbNameWithHits(db) {
+           return `${db.Label} (hits: ${Humanize.intComma(db.Hits)})`;
+         },
+
+         clearDatabaseSelector() {
            log.debug("clearning source selector");
-           this.refine.limitSources = [];
+           this.refine.limitDatabases = [];
+         },
+
+         clearJournalSelector() {
+           log.debug("clearning journal selector");
+           this.refine.limitJournals = [];
+         },
+
+         clearTypeSelector() {
+           log.debug("clearning type selector");
+           this.refine.limitTypes = [];
          },
 
 
@@ -335,7 +387,7 @@
            // string, in which case nextPage === 1; (2) it's a request for
            // another page, in which case nextPage > 1; or (3) it's a refined
            // search, in which case nextPage === 1, and 
-           // search.current = search.previous, and refine.limitSources != [].
+           // search.current = search.previous, and refine.limitDatabases != [].
 
            if (nextPage === 1) {
              if (this.search.current != this.search.previous) {
@@ -343,8 +395,9 @@
                log.debug('clearing state and starting a new search')
                this.resetSearch();
                this.currentPage = 1;
-             } else if (this.refine.limitSources) {
-               log.debug('searching with limited sources');
+             } else if (this.refine.limitDatabases || this.refine.limitTypes
+                        || this.refine.limitJournals) { 
+               log.debug('searching with filters');
                this.refine.doneSearch = true;
                // Fall through to next steps.
              } else {
@@ -366,7 +419,7 @@
            }
 
            // Let's do this thing.
-           this.search.status = 'Searching for "' + this.search.current + '" ...';
+           this.search.status = `Searching for "${this.search.current}" ...`;
            this.search.inProgress = true;
            document.getElementById("search-button").focus();
 
@@ -379,7 +432,7 @@
 
            let searchPromise = Promise.all([authTokenPromise, sessionTokenPromise]).then(
              (tokens) => {
-               return eds.searchResults(this, tokens[0], tokens[1], this.refine.limitSources);
+               return eds.searchResults(this, tokens[0], tokens[1], this.refine);
              });
 
            let items = searchPromise.then(
@@ -394,14 +447,14 @@
                if (! results) {
                  log.debug('no results received');
                  this.search.inProgress = false;
-                 this.search.status = 'Searching for "' + this.search.current + '" ... Error.';
+                 this.search.status = `Searching for "${this.search.current}" ... Error.`;
                  return;
                };
 
                log.debug('results received');
                this.search.previous = this.search.current;
                this.search.inProgress = false;
-               this.search.status = 'Searching for "' + this.search.current + '" ... Done.';
+               this.search.status = `Searching for "${this.search.current}" ... Done.`;
                log.debug(results);
                stats = results.Statistics;
                this.search.numResults = 'Total number of hits: '
@@ -426,12 +479,17 @@
                if (results.Data.hasOwnProperty('Records')) {
                  log.debug('updating records');
                  // This triggers the Vue component filling in the results.
-                 this.records = results.Data.Records;
+                 this.results.records = results.Data.Records;
 
-                 // Now populate the pull-down menu of journal titles. Use only
-                 // those that have non-zero number of hits in the search.
-                 // results.Statistics.Databases
-                 this.sources = eds.sourceList(results.Statistics.Databases);
+                 // Populate the pull-downs. Use only those that have non-zero
+                 // number of hits in the search.
+                 this.results.databases = eds.sourceList(results.Statistics.Databases);
+
+                 // Populate the resource type pull-down.
+                 const facets = results.AvailableFacets;
+                 this.results.sourceTypes = eds.facetList(facets, "SourceType");
+                 this.results.journals    = eds.facetList(facets, "Journal");
+                 this.results.subjects    = eds.facetList(facets, "SubjectEDS");
                };
              });
          },
