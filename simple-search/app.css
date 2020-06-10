@@ -368,6 +368,11 @@ h1 {
   font-size: 12pt;
 }
 
+.multiselect__single {
+  font-size: 11pt;
+  color: #aaa;
+}
+
 .multiselect__option {
   font-size: 10pt;
 }
@@ -383,18 +388,20 @@ h1 {
   font-size: 10pt;
 }
 
-.refine-source {
+.refine {
+  font-size: 12pt;
+  margin-bottom: 2em;
+}
+
+.refine-label {
   font-size: 12pt;
 }
 
-.refine-source-text {
-
-}
-
-.refine-source .multiselect,
-.refine-source .multiselect__select,
-.refine-source .multiselect__tags {
+.refine .multiselect,
+.refine .multiselect__select,
+.refine .multiselect__tags {
   padding: 4px;
   height: 30px;
   min-height: 30px;
 }
+
